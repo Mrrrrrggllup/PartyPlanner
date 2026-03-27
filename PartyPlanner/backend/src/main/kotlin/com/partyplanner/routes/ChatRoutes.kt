@@ -5,11 +5,10 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.partyplanner.dto.SendChatMessageDto
 import com.partyplanner.services.AuthService
 import com.partyplanner.services.ChatService
-import io.ktor.http.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 fun Route.chatRoutes(chatService: ChatService, authService: AuthService) {
@@ -32,7 +31,7 @@ fun Route.chatRoutes(chatService: ChatService, authService: AuthService) {
         try {
             // Send history on connect
             chatService.getHistory(eventId).forEach { msg ->
-                sendSerialized(msg)
+                send(Frame.Text(Json.encodeToString(msg)))
             }
 
             // Receive messages

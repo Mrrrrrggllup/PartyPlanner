@@ -45,10 +45,10 @@ class ChatService {
     suspend fun checkAccess(eventId: Int, userId: Int): Boolean = withContext(Dispatchers.IO) {
         transaction {
             val event = EventEntity.findById(eventId) ?: return@transaction false
-            if (event.ownerId.value == userId) return@transaction true
+            if (event.owner.id.value == userId) return@transaction true
             InvitationEntity.find {
                 (Invitations.eventId eq eventId) and
-                (Invitations.invitedUserId eq userId) and
+                (Invitations.userId eq userId) and
                 (Invitations.status eq InvitationStatus.ACCEPTED)
             }.firstOrNull() != null
         }

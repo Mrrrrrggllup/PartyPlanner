@@ -113,6 +113,7 @@ class DefaultEventDetailComponent(
         // Maintain WS connection (suspends until closed)
         scope.launch {
             runCatching { chatRepository.connect(eventId) }
+                .onFailure { println("Chat WS error: $it") }
         }
     }
 
