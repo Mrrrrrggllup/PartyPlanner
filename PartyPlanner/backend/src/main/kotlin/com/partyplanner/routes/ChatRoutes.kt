@@ -1,26 +1,42 @@
 package com.partyplanner.routes
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import com.partyplanner.dto.SendChatMessageDto
 import com.partyplanner.services.AuthService
 import com.partyplanner.services.ChatService
-import io.ktor.server.routing.*
-import io.ktor.server.websocket.*
-import io.ktor.websocket.*
+import io.ktor.server.routing.Route
+import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.Frame
+import io.ktor.websocket.close
+import io.ktor.websocket.readText
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 fun Route.chatRoutes(chatService: ChatService, authService: AuthService) {
     webSocket("/events/{id}/chat") {
         val eventId = call.parameters["id"]?.toIntOrNull()
-            ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid event id"))
+            ?: return@webSocket close(
+                CloseReason(
+                    CloseReason.Codes.VIOLATED_POLICY,
+                    "Invalid event id"
+                )
+            )
 
         val token = call.request.queryParameters["token"]
-            ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing token"))
+            ?: return@webSocket close(
+                CloseReason(
+                    CloseReason.Codes.VIOLATED_POLICY,
+                    "Missing token"
+                )
+            )
 
         val userId = authService.verifyToken(token)
-            ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid token"))
+            ?: return@webSocket close(
+                CloseReason(
+                    CloseReason.Codes.VIOLATED_POLICY,
+                    "Invalid token"
+                )
+            )
 
         if (!chatService.checkAccess(eventId, userId)) {
             close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Access denied"))

@@ -96,7 +96,7 @@ _Dernière mise à jour : 2026-03-28_
 - `JoinCarpoolSheet` : point de prise en charge optionnel
 - Stat "Covoits" dans la StatsRow reflète le nombre réel d'offres
 
-### Chat WebSocket ✅
+### Chat WebSocket ✅ (testé et fonctionnel)
 
 **Backend**
 - Table `ChatMessages` (eventId, senderId, content, createdAt)
@@ -109,6 +109,7 @@ _Dernière mise à jour : 2026-03-28_
 - Plugin WebSockets installé (ping 30s, timeout 60s)
 
 **Shared + UI**
+- `ktor-client-okhttp` requis côté Android (`ktor-client-android` ne supporte pas les WS)
 - `ktor-client-websockets` ajouté aux dépendances KMM
 - `install(WebSockets)` sur le HttpClient partagé
 - `ChatApi` : connexion WS persistante, `send()` via session stockée
