@@ -1,0 +1,14 @@
+CREATE TABLE Session (
+    token TEXT NOT NULL,
+    userId INTEGER NOT NULL,
+    displayName TEXT NOT NULL
+);
+
+selectSession:
+SELECT * FROM Session LIMIT 1;
+
+insertSession:
+INSERT OR REPLACE INTO Session(token, userId, displayName) VALUES (?, ?, ?);
+
+clearSession:
+DELETE FROM Session;
