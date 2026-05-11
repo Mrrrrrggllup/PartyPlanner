@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.partyplanner.core.AppConfig
 import com.partyplanner.domain.model.Event
-import com.partyplanner.generated.resources.*
+import partyplanner.composeapp.generated.resources.*
 import com.partyplanner.presentation.home.HomeComponent
 import com.partyplanner.presentation.home.HomeState
 import com.partyplanner.ui.theme.AppShapes
@@ -28,6 +28,7 @@ import com.partyplanner.ui.theme.appColors
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -196,7 +197,7 @@ private fun CalendarStrip(
     onDateSelected: (LocalDate) -> Unit,
     onExpandCalendar: () -> Unit
 ) {
-    val today       = Clock.System.todayIn(TimeZone.currentSystemDefault())
+    val today       = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     val startOffset = 14
     val totalDays   = 90
     val days        = (0 until totalDays).map { today.plus(it - startOffset, DateTimeUnit.DAY) }

@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.partyplanner.core.AppConfig
-import com.partyplanner.generated.resources.*
+import partyplanner.composeapp.generated.resources.*
 import com.partyplanner.presentation.auth.AuthComponent
 import com.partyplanner.presentation.auth.AuthState
 import com.partyplanner.ui.theme.AppShapes

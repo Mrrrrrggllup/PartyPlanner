@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import com.partyplanner.generated.resources.*
 import com.partyplanner.presentation.event.CreateEventComponent
 import com.partyplanner.presentation.event.CreateEventState
 import com.partyplanner.ui.theme.AppShapes
@@ -25,6 +24,8 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
+import partyplanner.composeapp.generated.resources.Res
+import partyplanner.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

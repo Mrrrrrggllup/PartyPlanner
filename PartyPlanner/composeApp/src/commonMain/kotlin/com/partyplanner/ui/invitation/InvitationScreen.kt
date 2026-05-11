@@ -14,12 +14,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.partyplanner.domain.model.InvitationStatus
 import com.partyplanner.domain.model.InviteInfo
-import com.partyplanner.generated.resources.*
 import com.partyplanner.presentation.invitation.InvitationComponent
 import com.partyplanner.presentation.invitation.InvitationState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
 import org.jetbrains.compose.resources.stringResource
+import partyplanner.composeapp.generated.resources.Res
+import partyplanner.composeapp.generated.resources.*
 
 @Composable
 fun InvitationScreen(component: InvitationComponent) {

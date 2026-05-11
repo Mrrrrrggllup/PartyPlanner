@@ -30,7 +30,7 @@ import com.partyplanner.domain.model.InvitationStatus
 import com.partyplanner.domain.model.ItemBrought
 import com.partyplanner.domain.model.ItemCategory
 import com.partyplanner.domain.model.ItemRequest
-import com.partyplanner.generated.resources.*
+import partyplanner.composeapp.generated.resources.*
 import com.partyplanner.presentation.event.EventDetailComponent
 import com.partyplanner.presentation.event.EventDetailState
 import com.partyplanner.ui.theme.AppShapes
