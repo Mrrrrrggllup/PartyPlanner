@@ -25,12 +25,10 @@ import com.partyplanner.presentation.home.HomeComponent
 import com.partyplanner.presentation.home.HomeState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
+import kotlin.time.Clock
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.number
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
