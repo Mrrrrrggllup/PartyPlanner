@@ -60,10 +60,11 @@ kotlin {
     }
 }
 
+val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
-    val f = rootProject.file("keystore.properties")
-    if (f.exists()) load(f.inputStream())
+    if (keystorePropsFile.exists()) load(keystorePropsFile.inputStream())
 }
+val hasKeystore = keystorePropsFile.exists()
 
 android {
     namespace = "com.partyplanner"
@@ -81,12 +82,14 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    signingConfigs {
-        create("release") {
-            storeFile = file(keystoreProps["storeFile"] as String)
-            storePassword = keystoreProps["storePassword"] as String
-            keyAlias = keystoreProps["keyAlias"] as String
-            keyPassword = keystoreProps["keyPassword"] as String
+    if (hasKeystore) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystoreProps["storeFile"] as String)
+                storePassword = keystoreProps["storePassword"] as String
+                keyAlias = keystoreProps["keyAlias"] as String
+                keyPassword = keystoreProps["keyPassword"] as String
+            }
         }
     }
     buildFeatures {
@@ -98,7 +101,7 @@ android {
         }
         getByName("release") {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            if (hasKeystore) signingConfig = signingConfigs.getByName("release")
             buildConfigField("String", "BASE_URL", "\"http://51.15.128.216:8080\"")
             firebaseAppDistribution {
                 releaseNotesFile = "composeApp/release_notes.txt"
