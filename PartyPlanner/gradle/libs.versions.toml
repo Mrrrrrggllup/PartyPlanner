@@ -1,5 +1,7 @@
 [versions]
 agp = "8.13.2"
+firebaseAppDistribution = "5.1.1"
+googleServices = "4.4.2"
 android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "36"
@@ -93,6 +95,8 @@ sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sq
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
+firebaseAppDistribution = { id = "com.google.firebase.appdistribution", version.ref = "firebaseAppDistribution" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
