@@ -13,11 +13,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.partyplanner.generated.resources.*
 import com.partyplanner.presentation.profile.ProfileComponent
 import com.partyplanner.presentation.profile.ProfileState
 import com.partyplanner.presentation.profile.ThemeMode
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ProfileScreen(component: ProfileComponent) {
@@ -58,10 +60,9 @@ private fun ProfileContent(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Display name
             Column {
                 Text(
-                    text = "NOM AFFICHÉ",
+                    text = stringResource(Res.string.profile_section_name),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -74,10 +75,9 @@ private fun ProfileContent(
                 HorizontalDivider(modifier = Modifier.padding(top = 12.dp), color = MaterialTheme.colorScheme.outline)
             }
 
-            // Theme switcher
             Column {
                 Text(
-                    text = "THÈME",
+                    text = stringResource(Res.string.profile_section_theme),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -87,7 +87,6 @@ private fun ProfileContent(
 
             Spacer(Modifier.weight(1f))
 
-            // Logout
             OutlinedButton(
                 onClick = { showLogoutDialog = true },
                 modifier = Modifier.fillMaxWidth(),
@@ -95,7 +94,7 @@ private fun ProfileContent(
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.error)
             ) {
-                Text("Se déconnecter", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(Res.string.profile_btn_logout), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -103,15 +102,17 @@ private fun ProfileContent(
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Se déconnecter ?") },
-            text  = { Text("Vous devrez vous reconnecter pour accéder à l'application.") },
+            title = { Text(stringResource(Res.string.profile_dialog_logout_title)) },
+            text  = { Text(stringResource(Res.string.profile_dialog_logout_text)) },
             confirmButton = {
                 TextButton(onClick = { showLogoutDialog = false; onLogout() }) {
-                    Text("Déconnexion", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(Res.string.profile_dialog_logout_confirm), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) { Text("Annuler") }
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text(stringResource(Res.string.common_cancel))
+                }
             }
         )
     }
@@ -127,7 +128,6 @@ private fun ProfileHero(displayName: String, onBack: () -> Unit) {
             .statusBarsPadding()
             .padding(bottom = 32.dp)
     ) {
-        // Back button
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -148,7 +148,6 @@ private fun ProfileHero(displayName: String, onBack: () -> Unit) {
                 .padding(top = 56.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Large avatar
             val initial = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
             Box(
                 modifier = Modifier
@@ -179,9 +178,9 @@ private fun ProfileHero(displayName: String, onBack: () -> Unit) {
 @Composable
 private fun ThemeSwitcher(current: ThemeMode, onChange: (ThemeMode) -> Unit) {
     val options = listOf(
-        ThemeMode.SYSTEM to "Système",
-        ThemeMode.LIGHT  to "Clair",
-        ThemeMode.DARK   to "Sombre",
+        ThemeMode.SYSTEM to stringResource(Res.string.profile_theme_system),
+        ThemeMode.LIGHT  to stringResource(Res.string.profile_theme_light),
+        ThemeMode.DARK   to stringResource(Res.string.profile_theme_dark),
     )
     val gradA = MaterialTheme.appColors.gradA
 

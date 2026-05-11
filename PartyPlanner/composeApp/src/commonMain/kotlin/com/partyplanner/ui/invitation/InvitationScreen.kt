@@ -14,10 +14,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.partyplanner.domain.model.InvitationStatus
 import com.partyplanner.domain.model.InviteInfo
+import com.partyplanner.generated.resources.*
 import com.partyplanner.presentation.invitation.InvitationComponent
 import com.partyplanner.presentation.invitation.InvitationState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun InvitationScreen(component: InvitationComponent) {
@@ -35,7 +37,9 @@ fun InvitationScreen(component: InvitationComponent) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(s.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
-                    OutlinedButton(onClick = component::onBack) { Text("Retour") }
+                    OutlinedButton(onClick = component::onBack) {
+                        Text(stringResource(Res.string.invitation_back))
+                    }
                 }
             }
             is InvitationState.Success -> InvitationContent(
@@ -64,40 +68,37 @@ private fun InvitationContent(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Event info
-            EventInfoRow(label = "Organisé par", value = info.organizerName)
-            EventInfoRow(label = "Date", value = info.startDate.formatDisplay())
-            info.endDate?.let { EventInfoRow(label = "Jusqu'au", value = it.formatDisplay()) }
-            info.location?.let { EventInfoRow(label = "Lieu", value = it) }
+            EventInfoRow(label = stringResource(Res.string.invitation_organized_by), value = info.organizerName)
+            EventInfoRow(label = stringResource(Res.string.invitation_date), value = info.startDate.formatDisplay())
+            info.endDate?.let { EventInfoRow(label = stringResource(Res.string.invitation_until), value = it.formatDisplay()) }
+            info.location?.let { EventInfoRow(label = stringResource(Res.string.common_location), value = it) }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
             if (info.isOwner) {
-                // Organizer viewing their own invite link
                 Text(
-                    text = "Vous êtes l'organisateur de cet événement.",
+                    text = stringResource(Res.string.invitation_is_organizer),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                    Text("Retour")
+                    Text(stringResource(Res.string.invitation_back))
                 }
             } else {
-                // Current status banner
                 info.currentStatus?.let { status ->
                     StatusBanner(status)
                     Spacer(Modifier.height(4.dp))
                 }
 
                 Text(
-                    text = if (info.currentStatus == null) "Serez-vous présent ?" else "Modifier votre réponse",
+                    text = if (info.currentStatus == null) stringResource(Res.string.invitation_rsvp_question)
+                           else stringResource(Res.string.invitation_rsvp_change),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
 
-                // RSVP buttons
                 RsvpButtons(isSubmitting = isSubmitting, onRsvp = onRsvp)
             }
         }
@@ -166,10 +167,10 @@ private fun EventInfoRow(label: String, value: String) {
 @Composable
 private fun StatusBanner(status: InvitationStatus) {
     val (emoji, label, color) = when (status) {
-        InvitationStatus.ACCEPTED -> Triple("✅", "Vous avez accepté", MaterialTheme.colorScheme.primary)
-        InvitationStatus.DECLINED -> Triple("❌", "Vous avez décliné", MaterialTheme.colorScheme.error)
-        InvitationStatus.MAYBE    -> Triple("🤔", "Vous avez répondu peut-être", MaterialTheme.colorScheme.secondary)
-        InvitationStatus.PENDING  -> Triple("⏳", "En attente de réponse", MaterialTheme.colorScheme.onSurfaceVariant)
+        InvitationStatus.ACCEPTED -> Triple("✅", stringResource(Res.string.invitation_status_accepted), MaterialTheme.colorScheme.primary)
+        InvitationStatus.DECLINED -> Triple("❌", stringResource(Res.string.invitation_status_declined), MaterialTheme.colorScheme.error)
+        InvitationStatus.MAYBE    -> Triple("🤔", stringResource(Res.string.invitation_status_maybe), MaterialTheme.colorScheme.secondary)
+        InvitationStatus.PENDING  -> Triple("⏳", stringResource(Res.string.invitation_status_pending), MaterialTheme.colorScheme.onSurfaceVariant)
     }
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -196,21 +197,21 @@ private fun RsvpButtons(isSubmitting: Boolean, onRsvp: (InvitationStatus) -> Uni
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         RsvpButton(
             emoji = "✅",
-            label = "J'y serai !",
+            label = stringResource(Res.string.invitation_rsvp_accept),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             onClick = { onRsvp(InvitationStatus.ACCEPTED) }
         )
         RsvpButton(
             emoji = "🤔",
-            label = "Peut-être",
+            label = stringResource(Res.string.invitation_rsvp_maybe),
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             onClick = { onRsvp(InvitationStatus.MAYBE) }
         )
         RsvpButton(
             emoji = "❌",
-            label = "Je ne pourrai pas",
+            label = stringResource(Res.string.invitation_rsvp_decline),
             containerColor = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
             onClick = { onRsvp(InvitationStatus.DECLINED) }

@@ -30,17 +30,27 @@ import com.partyplanner.domain.model.InvitationStatus
 import com.partyplanner.domain.model.ItemBrought
 import com.partyplanner.domain.model.ItemCategory
 import com.partyplanner.domain.model.ItemRequest
+import com.partyplanner.generated.resources.*
 import com.partyplanner.presentation.event.EventDetailComponent
 import com.partyplanner.presentation.event.EventDetailState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
+import org.jetbrains.compose.resources.stringResource
 
-private enum class DetailTab(val label: String, val icon: String) {
-    INVITES("Invités", "👥"),
-    ITEMS("Items", "🛒"),
-    CHAT("Chat", "💬"),
-    COVOIT("Covoit", "🚗"),
+private enum class DetailTab(val icon: String) {
+    INVITES("👥"),
+    ITEMS("🛒"),
+    CHAT("💬"),
+    COVOIT("🚗"),
 }
+
+private val DetailTab.localizedLabel: String
+    @Composable get() = when (this) {
+        DetailTab.INVITES -> stringResource(Res.string.detail_tab_guests)
+        DetailTab.ITEMS   -> stringResource(Res.string.detail_tab_items)
+        DetailTab.CHAT    -> stringResource(Res.string.detail_tab_chat)
+        DetailTab.COVOIT  -> stringResource(Res.string.detail_tab_carpool)
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,134 +90,127 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                 modifier      = Modifier.fillMaxSize(),
                             )
                         } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 80.dp)
-                        ) {
-                            item {
-                                StatsRow(
-                                    total     = s.invitations.size,
-                                    confirmed = s.invitations.count { it.status == InvitationStatus.ACCEPTED },
-                                    covoits   = s.carpoolOffers.size,
-                                    modifier  = Modifier.padding(16.dp)
-                                )
-                            }
-                            item { Spacer(Modifier.height(4.dp)) }
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 80.dp)
+                            ) {
+                                item {
+                                    StatsRow(
+                                        total     = s.invitations.size,
+                                        confirmed = s.invitations.count { it.status == InvitationStatus.ACCEPTED },
+                                        covoits   = s.carpoolOffers.size,
+                                        modifier  = Modifier.padding(16.dp)
+                                    )
+                                }
+                                item { Spacer(Modifier.height(4.dp)) }
 
-                            when (selectedTab) {
-                                DetailTab.INVITES -> {
-                                    if (s.isOwner) {
-                                        s.event.inviteToken?.let { token ->
+                                when (selectedTab) {
+                                    DetailTab.INVITES -> {
+                                        if (s.isOwner) {
+                                            s.event.inviteToken?.let { token ->
+                                                item {
+                                                    InviteButton(
+                                                        token = token,
+                                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                                    )
+                                                }
+                                                item { Spacer(Modifier.height(12.dp)) }
+                                            }
+                                        }
+                                        if (s.invitations.isEmpty()) {
                                             item {
-                                                InviteButton(
-                                                    token = token,
-                                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                                Box(
+                                                    Modifier.fillMaxWidth().padding(40.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = stringResource(Res.string.detail_guests_empty),
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        } else {
+                                            item {
+                                                Text(
+                                                    text = stringResource(Res.string.detail_guests_count, s.invitations.size),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                                                 )
                                             }
-                                            item { Spacer(Modifier.height(12.dp)) }
+                                            items(s.invitations) { inv ->
+                                                GuestRow(
+                                                    invitation = inv,
+                                                    modifier = Modifier
+                                                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+                                        if (s.isOwner) {
+                                            item { Spacer(Modifier.height(16.dp)) }
+                                            item {
+                                                OutlinedButton(
+                                                    onClick = { showDeleteDialog = true },
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(horizontal = 16.dp),
+                                                    shape = AppShapes.TextField,
+                                                    colors = ButtonDefaults.outlinedButtonColors(
+                                                        contentColor = MaterialTheme.colorScheme.error
+                                                    ),
+                                                    border = androidx.compose.foundation.BorderStroke(
+                                                        1.5.dp,
+                                                        MaterialTheme.colorScheme.error
+                                                    )
+                                                ) {
+                                                    Text(
+                                                        stringResource(Res.string.detail_btn_delete_event),
+                                                        style = MaterialTheme.typography.labelLarge
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
-                                    if (s.invitations.isEmpty()) {
+                                    DetailTab.ITEMS -> {
                                         item {
-                                            Box(
-                                                Modifier.fillMaxWidth().padding(40.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = "Aucun invité pour l'instant",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        item {
-                                            Text(
-                                                text = "INVITÉS (${s.invitations.size})",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                            ItemsTabHeader(
+                                                onAddRequest = { showAddItemRequestSheet = true },
+                                                onAddBrought = { showAddItemBroughtSheet = true },
+                                                modifier     = Modifier.padding(horizontal = 16.dp)
                                             )
                                         }
-                                        items(s.invitations) { inv ->
-                                            GuestRow(
-                                                invitation = inv,
-                                                modifier = Modifier
-                                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                        item { Spacer(Modifier.height(8.dp)) }
+                                        ItemsTabContent(
+                                            eventItems      = s.items,
+                                            isOwner         = s.isOwner,
+                                            currentUserId   = s.currentUserId,
+                                            onFulfill       = component::onFulfillItemRequest,
+                                            onDeleteRequest = component::onDeleteItemRequest,
+                                            onDeleteBrought = component::onDeleteItemBrought,
+                                        )
+                                    }
+                                    DetailTab.COVOIT -> {
+                                        item {
+                                            CarpoolTabHeader(
+                                                onCreateOffer = { showCreateCarpoolSheet = true },
+                                                modifier = Modifier.padding(horizontal = 16.dp)
                                             )
                                         }
-                                    }
-                                    if (s.isOwner) {
-                                        item { Spacer(Modifier.height(16.dp)) }
-                                        item {
-                                            OutlinedButton(
-                                                onClick = { showDeleteDialog = true },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = 16.dp),
-                                                shape = AppShapes.TextField,
-                                                colors = ButtonDefaults.outlinedButtonColors(
-                                                    contentColor = MaterialTheme.colorScheme.error
-                                                ),
-                                                border = androidx.compose.foundation.BorderStroke(
-                                                    1.5.dp,
-                                                    MaterialTheme.colorScheme.error
-                                                )
-                                            ) {
-                                                Text(
-                                                    "Supprimer l'événement",
-                                                    style = MaterialTheme.typography.labelLarge
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                                DetailTab.ITEMS -> {
-                                    item {
-                                        ItemsTabHeader(
-                                            onAddRequest = { showAddItemRequestSheet = true },
-                                            onAddBrought = { showAddItemBroughtSheet = true },
-                                            modifier     = Modifier.padding(horizontal = 16.dp)
+                                        item { Spacer(Modifier.height(8.dp)) }
+                                        CarpoolTabContent(
+                                            offers        = s.carpoolOffers,
+                                            currentUserId = s.currentUserId,
+                                            isOwner       = s.isOwner,
+                                            onJoin        = { offerId -> joinCarpoolOfferId = offerId },
+                                            onLeave       = component::onLeaveCarpool,
+                                            onDelete      = component::onDeleteCarpoolOffer,
                                         )
                                     }
-                                    item { Spacer(Modifier.height(8.dp)) }
-                                    ItemsTabContent(
-                                        eventItems      = s.items,
-                                        isOwner         = s.isOwner,
-                                        currentUserId   = s.currentUserId,
-                                        onFulfill       = component::onFulfillItemRequest,
-                                        onDeleteRequest = component::onDeleteItemRequest,
-                                        onDeleteBrought = component::onDeleteItemBrought,
-                                    )
+                                    else -> {}
                                 }
-                                DetailTab.CHAT -> item {
-                                    PlaceholderSection(
-                                        emoji    = "💬",
-                                        title    = "Chat de groupe",
-                                        subtitle = "Disponible en Phase 4"
-                                    )
-                                }
-                                DetailTab.COVOIT -> {
-                                    item {
-                                        CarpoolTabHeader(
-                                            onCreateOffer = { showCreateCarpoolSheet = true },
-                                            modifier = Modifier.padding(horizontal = 16.dp)
-                                        )
-                                    }
-                                    item { Spacer(Modifier.height(8.dp)) }
-                                    CarpoolTabContent(
-                                        offers        = s.carpoolOffers,
-                                        currentUserId = s.currentUserId,
-                                        isOwner       = s.isOwner,
-                                        onJoin        = { offerId -> joinCarpoolOfferId = offerId },
-                                        onLeave       = component::onLeaveCarpool,
-                                        onDelete      = component::onDeleteCarpoolOffer,
-                                    )
-                                }
-                                DetailTab.CHAT -> { /* handled above */ }
                             }
                         }
-                        } // end else (non-chat tabs)
 
                         DetailTabBar(
                             selected = selectedTab,
@@ -226,8 +229,8 @@ fun EventDetailScreen(component: EventDetailComponent) {
 
     if (showAddItemRequestSheet) {
         AddItemSheet(
-            title      = "On a besoin de…",
-            hint       = "Ex: chips, jus d'orange, serviettes…",
+            title      = stringResource(Res.string.detail_items_sheet_need_title),
+            hint       = stringResource(Res.string.detail_items_sheet_need_hint),
             categories = categories,
             onConfirm  = { label, qty, catId ->
                 component.onAddItemRequest(label, qty, catId)
@@ -239,8 +242,8 @@ fun EventDetailScreen(component: EventDetailComponent) {
 
     if (showAddItemBroughtSheet) {
         AddItemSheet(
-            title      = "Ce que j'apporte",
-            hint       = "Ex: salade de fruits, sodas, plateau…",
+            title      = stringResource(Res.string.detail_items_sheet_brought_title),
+            hint       = stringResource(Res.string.detail_items_sheet_brought_hint),
             categories = categories,
             onConfirm  = { label, qty, catId ->
                 component.onAddItemBrought(label, qty, catId)
@@ -273,15 +276,17 @@ fun EventDetailScreen(component: EventDetailComponent) {
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer l'événement ?") },
-            text  = { Text("Cette action est irréversible.") },
+            title = { Text(stringResource(Res.string.detail_dialog_delete_title)) },
+            text  = { Text(stringResource(Res.string.detail_dialog_delete_text)) },
             confirmButton = {
                 TextButton(onClick = { showDeleteDialog = false; component.onDelete() }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(Res.string.common_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Annuler") }
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(Res.string.common_cancel))
+                }
             }
         )
     }
@@ -362,9 +367,9 @@ private fun StatsRow(total: Int, confirmed: Int, covoits: Int, modifier: Modifie
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        StatTile(value = "$total",     label = "Invités",   gradient = gradA, modifier = Modifier.weight(1f))
-        StatTile(value = "$confirmed", label = "Confirmés", gradient = gradC, modifier = Modifier.weight(1f))
-        StatTile(value = "$covoits",   label = "Covoits",   gradient = gradB, modifier = Modifier.weight(1f))
+        StatTile(value = "$total",     label = stringResource(Res.string.detail_stat_guests),    gradient = gradA, modifier = Modifier.weight(1f))
+        StatTile(value = "$confirmed", label = stringResource(Res.string.detail_stat_confirmed), gradient = gradC, modifier = Modifier.weight(1f))
+        StatTile(value = "$covoits",   label = stringResource(Res.string.detail_stat_rides),     gradient = gradB, modifier = Modifier.weight(1f))
     }
 }
 
@@ -440,7 +445,7 @@ private fun DetailTabBar(
                             Text(tab.icon, fontSize = 17.sp)
                         }
                         Text(
-                            text = tab.label,
+                            text = tab.localizedLabel,
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isActive) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.onSurfaceVariant
@@ -508,7 +513,8 @@ private fun InviteButton(token: String, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text  = if (copied) "✅ Lien copié !" else "🔗 Copier le lien d'invitation",
+            text  = if (copied) stringResource(Res.string.detail_invite_copied)
+                    else stringResource(Res.string.detail_invite_copy),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary
         )
@@ -536,7 +542,7 @@ private fun ItemsTabHeader(
                 .clickable(onClick = onAddRequest),
             contentAlignment = Alignment.Center
         ) {
-            Text("+ Besoin", color = Color.White, style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(Res.string.detail_items_add_request), color = Color.White, style = MaterialTheme.typography.labelLarge)
         }
         Box(
             modifier = Modifier
@@ -548,7 +554,7 @@ private fun ItemsTabHeader(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text  = "J'apporte…",
+                text  = stringResource(Res.string.detail_items_add_brought),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge
             )
@@ -567,13 +573,12 @@ fun androidx.compose.foundation.lazy.LazyListScope.ItemsTabContent(
     if (eventItems.requests.isNotEmpty()) {
         item {
             Text(
-                text     = "CE QU'IL MANQUE (${eventItems.requests.size})",
+                text     = stringResource(Res.string.detail_items_needed_header, eventItems.requests.size),
                 style    = MaterialTheme.typography.labelSmall,
                 color    = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
         }
-        // Group by category — backend already sorts by categoryId ASC NULLS LAST
         val requestGroups = eventItems.requests.groupBy { it.categoryId }
         requestGroups.forEach { (catId, groupItems) ->
             val catIcon  = groupItems.first().categoryIcon
@@ -599,7 +604,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.ItemsTabContent(
     if (eventItems.brought.isNotEmpty()) {
         item {
             Text(
-                text     = "CE QU'ON APPORTE (${eventItems.brought.size})",
+                text     = stringResource(Res.string.detail_items_brought_header, eventItems.brought.size),
                 style    = MaterialTheme.typography.labelSmall,
                 color    = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -632,7 +637,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.ItemsTabContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text  = "Aucun item pour l'instant",
+                    text  = stringResource(Res.string.detail_items_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -673,6 +678,7 @@ private fun ItemRequestRow(
     modifier: Modifier = Modifier,
 ) {
     val fulfilled = item.isFulfilled
+    val by = stringResource(Res.string.common_by)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -686,7 +692,6 @@ private fun ItemRequestRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Fulfill toggle (checkbox style)
         Box(
             modifier = Modifier
                 .size(28.dp)
@@ -712,7 +717,7 @@ private fun ItemRequestRow(
             }
             val sub = buildList {
                 if (item.quantity > 1) add("×${item.quantity}")
-                item.assignedToName?.let { add("par $it") }
+                item.assignedToName?.let { add("$by $it") }
             }.joinToString(" · ")
             if (sub.isNotEmpty()) {
                 Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -800,7 +805,6 @@ private fun AddItemSheet(
                 singleLine    = true,
             )
 
-            // Category picker
             if (categories.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -831,7 +835,7 @@ private fun AddItemSheet(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Quantité :", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text(stringResource(Res.string.detail_items_quantity), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { if (quantity > 1) quantity-- }) {
                     Text("−", style = MaterialTheme.typography.titleLarge)
                 }
@@ -854,7 +858,7 @@ private fun AddItemSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text  = "Ajouter",
+                    text  = stringResource(Res.string.common_add),
                     color = if (label.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelLarge
                 )
@@ -876,7 +880,7 @@ private fun CarpoolTabHeader(onCreateOffer: () -> Unit, modifier: Modifier = Mod
             .clickable(onClick = onCreateOffer),
         contentAlignment = Alignment.Center
     ) {
-        Text("🚗 Proposer un trajet", color = Color.White, style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(Res.string.detail_carpool_offer_btn), color = Color.White, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -895,7 +899,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.CarpoolTabContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text  = "Aucun trajet proposé pour l'instant",
+                    text  = stringResource(Res.string.detail_carpool_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -934,6 +938,7 @@ private fun CarpoolOfferCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val meLabel = stringResource(Res.string.detail_carpool_me)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -943,7 +948,6 @@ private fun CarpoolOfferCard(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Header row: driver name + seats
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -956,14 +960,14 @@ private fun CarpoolOfferCard(
                         Text(offer.driverName, style = MaterialTheme.typography.bodyMedium)
                         if (isDriver) {
                             Text(
-                                text  = "(moi)",
+                                text  = meLabel,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
                     Text(
-                        text  = "${offer.seatsRemaining}/${offer.seatsAvailable} places",
+                        text  = stringResource(Res.string.detail_carpool_seats_count, offer.seatsRemaining, offer.seatsAvailable),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (offer.seatsRemaining == 0) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.onSurfaceVariant
@@ -977,7 +981,6 @@ private fun CarpoolOfferCard(
             }
         }
 
-        // Details
         offer.departurePoint?.let { point ->
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("📍", fontSize = 13.sp)
@@ -991,9 +994,7 @@ private fun CarpoolOfferCard(
             }
         }
 
-        // Passengers list (active only)
         val activePassengers = offer.passengers.filter { it.pickupPoint != null || true }
-            // All passengers returned are active (MATCHED), backend filters CANCELLED
         if (activePassengers.isNotEmpty()) {
             activePassengers.forEach { p ->
                 Row(
@@ -1010,9 +1011,8 @@ private fun CarpoolOfferCard(
             }
         }
 
-        // Action button
         when {
-            isDriver -> Unit // no action for driver
+            isDriver -> Unit
             isPassenger -> {
                 Box(
                     modifier = Modifier
@@ -1023,7 +1023,7 @@ private fun CarpoolOfferCard(
                         .clickable(onClick = onLeave),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Je descends 🚪", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(Res.string.detail_carpool_leave_btn), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
                 }
             }
             canJoin -> {
@@ -1036,7 +1036,7 @@ private fun CarpoolOfferCard(
                         .clickable(onClick = onJoin),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Je monte ! 🙋", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(Res.string.detail_carpool_join_btn), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                 }
             }
             else -> {
@@ -1048,7 +1048,7 @@ private fun CarpoolOfferCard(
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Complet", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(Res.string.detail_carpool_full), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -1073,10 +1073,10 @@ private fun CreateCarpoolSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Proposer un trajet", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(Res.string.detail_carpool_sheet_title), style = MaterialTheme.typography.titleMedium)
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Places disponibles :", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text(stringResource(Res.string.detail_carpool_seats), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = { if (seats > 1) seats-- }) {
                     Text("−", style = MaterialTheme.typography.titleLarge)
                 }
@@ -1089,7 +1089,7 @@ private fun CreateCarpoolSheet(
             OutlinedTextField(
                 value         = departurePoint,
                 onValueChange = { departurePoint = it },
-                label         = { Text("Point de départ (optionnel)") },
+                label         = { Text(stringResource(Res.string.detail_carpool_departure)) },
                 modifier      = Modifier.fillMaxWidth(),
                 shape         = AppShapes.TextField,
                 singleLine    = true,
@@ -1098,7 +1098,7 @@ private fun CreateCarpoolSheet(
             OutlinedTextField(
                 value         = notes,
                 onValueChange = { notes = it },
-                label         = { Text("Notes (optionnel)") },
+                label         = { Text(stringResource(Res.string.detail_carpool_notes)) },
                 modifier      = Modifier.fillMaxWidth(),
                 shape         = AppShapes.TextField,
                 singleLine    = true,
@@ -1119,7 +1119,7 @@ private fun CreateCarpoolSheet(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Text("Créer le trajet", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(Res.string.detail_carpool_create), color = Color.White, style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -1141,12 +1141,12 @@ private fun JoinCarpoolSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Rejoindre le trajet", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(Res.string.detail_carpool_join_title), style = MaterialTheme.typography.titleMedium)
 
             OutlinedTextField(
                 value         = pickupPoint,
                 onValueChange = { pickupPoint = it },
-                label         = { Text("Point de prise en charge (optionnel)") },
+                label         = { Text(stringResource(Res.string.detail_carpool_pickup)) },
                 modifier      = Modifier.fillMaxWidth(),
                 shape         = AppShapes.TextField,
                 singleLine    = true,
@@ -1163,7 +1163,7 @@ private fun JoinCarpoolSheet(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Text("Je monte ! 🙋", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(Res.string.detail_carpool_join_btn), color = Color.White, style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -1199,7 +1199,7 @@ private fun ChatTabLayout(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text  = "Aucun message pour l'instant.\nSoyez le premier ! 👋",
+                            text  = stringResource(Res.string.detail_chat_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -1213,7 +1213,6 @@ private fun ChatTabLayout(
             }
         }
 
-        // Input bar (sits above the tab bar which overlaps from Box parent)
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(
             modifier = Modifier
@@ -1226,7 +1225,7 @@ private fun ChatTabLayout(
             OutlinedTextField(
                 value         = inputText,
                 onValueChange = { inputText = it },
-                placeholder   = { Text("Message…", style = MaterialTheme.typography.bodyMedium) },
+                placeholder   = { Text(stringResource(Res.string.detail_chat_placeholder), style = MaterialTheme.typography.bodyMedium) },
                 modifier      = Modifier.weight(1f),
                 shape         = AppShapes.TextField,
                 singleLine    = true,
@@ -1253,7 +1252,6 @@ private fun ChatTabLayout(
                 )
             }
         }
-        // Space for the overlaid tab bar
         Spacer(Modifier.navigationBarsPadding().height(72.dp))
     }
 }
@@ -1306,27 +1304,6 @@ private fun formatChatTime(dt: kotlinx.datetime.LocalDateTime): String {
     val h = dt.hour.toString().padStart(2, '0')
     val m = dt.minute.toString().padStart(2, '0')
     return "$h:$m"
-}
-
-// ── Placeholder ───────────────────────────────────────────────────────────────
-
-@Composable
-private fun PlaceholderSection(emoji: String, title: String, subtitle: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(emoji, fontSize = 40.sp)
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

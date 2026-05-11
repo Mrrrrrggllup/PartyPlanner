@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.partyplanner.generated.resources.*
 import com.partyplanner.presentation.event.CreateEventComponent
 import com.partyplanner.presentation.event.CreateEventState
 import com.partyplanner.ui.theme.AppShapes
@@ -23,6 +24,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,17 +35,14 @@ fun CreateEventScreen(component: CreateEventComponent) {
     var description by remember { mutableStateOf("") }
     var location    by remember { mutableStateOf("") }
 
-    // Dates sélectionnées
     var startDateTime by remember { mutableStateOf<LocalDateTime?>(null) }
     var endDateTime   by remember { mutableStateOf<LocalDateTime?>(null) }
 
-    // Dialogs
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndDatePicker   by remember { mutableStateOf(false) }
     var showEndTimePicker   by remember { mutableStateOf(false) }
 
-    // Picker states
     val startDateState = rememberDatePickerState()
     val startTimeState = rememberTimePickerState(initialHour = 19, initialMinute = 0)
     val endDateState   = rememberDatePickerState()
@@ -52,8 +51,6 @@ fun CreateEventScreen(component: CreateEventComponent) {
     val isLoading = state is CreateEventState.Loading
     val error = (state as? CreateEventState.Error)?.message
 
-    // ── Date picker dialogs ────────────────────────────────────────────────────
-
     if (showStartDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showStartDatePicker = false },
@@ -61,10 +58,12 @@ fun CreateEventScreen(component: CreateEventComponent) {
                 TextButton(onClick = {
                     showStartDatePicker = false
                     showStartTimePicker = true
-                }) { Text("Suivant") }
+                }) { Text(stringResource(Res.string.common_next)) }
             },
             dismissButton = {
-                TextButton(onClick = { showStartDatePicker = false }) { Text("Annuler") }
+                TextButton(onClick = { showStartDatePicker = false }) {
+                    Text(stringResource(Res.string.common_cancel))
+                }
             }
         ) { DatePicker(state = startDateState) }
     }
@@ -87,10 +86,12 @@ fun CreateEventScreen(component: CreateEventComponent) {
                 TextButton(onClick = {
                     showEndDatePicker = false
                     showEndTimePicker = true
-                }) { Text("Suivant") }
+                }) { Text(stringResource(Res.string.common_next)) }
             },
             dismissButton = {
-                TextButton(onClick = { showEndDatePicker = false }) { Text("Annuler") }
+                TextButton(onClick = { showEndDatePicker = false }) {
+                    Text(stringResource(Res.string.common_cancel))
+                }
             }
         ) { DatePicker(state = endDateState) }
     }
@@ -105,8 +106,6 @@ fun CreateEventScreen(component: CreateEventComponent) {
             state = endTimeState
         )
     }
-
-    // ── Écran ─────────────────────────────────────────────────────────────────
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -131,24 +130,22 @@ fun CreateEventScreen(component: CreateEventComponent) {
                     CreateTextField(
                         value = title,
                         onValueChange = { title = it },
-                        label = "Titre *",
+                        label = stringResource(Res.string.create_event_field_title),
                         capitalization = KeyboardCapitalization.Sentences,
                     )
 
                     Spacer(Modifier.height(14.dp))
 
-                    // Date de début
                     DateFieldButton(
-                        label = "Date de début *",
+                        label = stringResource(Res.string.create_event_field_start_date),
                         value = startDateTime?.formatDisplay(),
                         onClick = { showStartDatePicker = true }
                     )
 
                     Spacer(Modifier.height(14.dp))
 
-                    // Date de fin (optionnelle)
                     DateFieldButton(
-                        label = "Date de fin",
+                        label = stringResource(Res.string.create_event_field_end_date),
                         value = endDateTime?.formatDisplay(),
                         onClick = { showEndDatePicker = true }
                     )
@@ -158,7 +155,7 @@ fun CreateEventScreen(component: CreateEventComponent) {
                     CreateTextField(
                         value = location,
                         onValueChange = { location = it },
-                        label = "Lieu",
+                        label = stringResource(Res.string.common_location),
                         capitalization = KeyboardCapitalization.Words,
                     )
 
@@ -167,7 +164,7 @@ fun CreateEventScreen(component: CreateEventComponent) {
                     CreateTextField(
                         value = description,
                         onValueChange = { description = it },
-                        label = "Description",
+                        label = stringResource(Res.string.create_event_field_description),
                         singleLine = false,
                         imeAction = ImeAction.Default,
                         capitalization = KeyboardCapitalization.Sentences,
@@ -207,7 +204,11 @@ fun CreateEventScreen(component: CreateEventComponent) {
                         if (isLoading) {
                             CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = Color.White)
                         } else {
-                            Text("Créer l'événement", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                            Text(
+                                stringResource(Res.string.create_event_btn_create),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White
+                            )
                         }
                     }
                 }
@@ -241,7 +242,7 @@ private fun CreateEventHeader(onBack: () -> Unit) {
             Text("←", color = Color.White, style = MaterialTheme.typography.titleLarge)
         }
         Text(
-            text = "Nouvel événement",
+            text = stringResource(Res.string.create_event_title),
             style = MaterialTheme.typography.displaySmall,
             color = Color.White,
             modifier = Modifier.align(Alignment.Center)
@@ -309,7 +310,11 @@ private fun TimePickerDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onConfirm) { Text("OK") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.common_cancel))
+            }
+        },
         text = { TimePicker(state = state) }
     )
 }

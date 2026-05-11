@@ -20,12 +20,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.partyplanner.core.AppConfig
 import com.partyplanner.domain.model.Event
+import com.partyplanner.generated.resources.*
 import com.partyplanner.presentation.home.HomeComponent
 import com.partyplanner.presentation.home.HomeState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,15 +73,15 @@ fun HomeScreen(component: HomeComponent) {
                     ) {
                         Text(
                             text = if (selectedDate != null)
-                                "Événements du ${selectedDate!!.formatShort()}"
+                                stringResource(Res.string.home_events_on, selectedDate!!.formatShort())
                             else
-                                "Mes événements",
+                                stringResource(Res.string.home_my_events),
                             style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.weight(1f)
                         )
                         if (selectedDate != null) {
                             TextButton(onClick = { selectedDate = null }) {
-                                Text("Tout afficher", style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(Res.string.home_show_all), style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }
@@ -124,7 +126,6 @@ fun HomeScreen(component: HomeComponent) {
                 }
             }
 
-            // FAB gradient
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -210,7 +211,7 @@ private fun CalendarStrip(
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
         ) {
             Text(
-                text = "Calendrier",
+                text = stringResource(Res.string.home_calendar),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f)
             )
@@ -221,13 +222,13 @@ private fun CalendarStrip(
                 },
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
             ) {
-                Text("Aujourd'hui", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(Res.string.home_today), style = MaterialTheme.typography.labelMedium)
             }
             TextButton(
                 onClick = onExpandCalendar,
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
             ) {
-                Text("⊞ Mois", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(Res.string.home_month), style = MaterialTheme.typography.labelMedium)
             }
         }
         LazyRow(
@@ -299,7 +300,6 @@ private fun DayPill(
                 style = MaterialTheme.typography.titleLarge,
                 color = textColor
             )
-            // Always reserve space for the dot to keep pill height stable
             Box(
                 modifier = Modifier
                     .size(5.dp)
@@ -336,7 +336,6 @@ private fun MonthCalendarSheet(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp)
         ) {
-            // Month navigation
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -357,7 +356,6 @@ private fun MonthCalendarSheet(
 
             Spacer(Modifier.height(8.dp))
 
-            // Day-of-week header (Monday first)
             Row(modifier = Modifier.fillMaxWidth()) {
                 listOf("L", "M", "M", "J", "V", "S", "D").forEach { label ->
                     Text(
@@ -372,9 +370,8 @@ private fun MonthCalendarSheet(
 
             Spacer(Modifier.height(8.dp))
 
-            // Grid
             val daysInMonth   = monthStart.plus(1, DateTimeUnit.MONTH).minus(1, DateTimeUnit.DAY).dayOfMonth
-            val firstDayOffset = monthStart.dayOfWeek.isoDayNumber - 1 // 0=Mon, 6=Sun
+            val firstDayOffset = monthStart.dayOfWeek.isoDayNumber - 1
             val totalCells    = firstDayOffset + daysInMonth
             val rows          = (totalCells + 6) / 7
 
@@ -462,7 +459,6 @@ private fun EventCard(event: Event, isOwner: Boolean, onClick: () -> Unit, modif
         shape    = AppShapes.Card,
         border   = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline)
     ) {
-        // Accent bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -489,7 +485,8 @@ private fun EventCard(event: Event, isOwner: Boolean, onClick: () -> Unit, modif
                             else MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Text(
-                        text     = if (isOwner) "Organisateur" else "Invité",
+                        text     = if (isOwner) stringResource(Res.string.home_badge_organizer)
+                                   else stringResource(Res.string.home_badge_guest),
                         style    = MaterialTheme.typography.labelMedium,
                         color    = if (isOwner) MaterialTheme.colorScheme.primary
                                    else MaterialTheme.colorScheme.secondary,
@@ -537,13 +534,15 @@ private fun EmptyState(filtered: Boolean = false) {
         Text(if (filtered) "📅" else "🎉", fontSize = 48.sp)
         Spacer(Modifier.height(16.dp))
         Text(
-            text  = if (filtered) "Aucun événement ce jour" else "Aucun événement pour l'instant",
+            text  = if (filtered) stringResource(Res.string.home_empty_filtered_title)
+                    else stringResource(Res.string.home_empty_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text  = if (filtered) "Sélectionne une autre date ou crée un événement" else "Crée ton premier événement avec le bouton +",
+            text  = if (filtered) stringResource(Res.string.home_empty_filtered_hint)
+                    else stringResource(Res.string.home_empty_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

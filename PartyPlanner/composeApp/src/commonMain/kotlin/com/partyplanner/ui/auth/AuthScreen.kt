@@ -26,10 +26,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.partyplanner.core.AppConfig
+import com.partyplanner.generated.resources.*
 import com.partyplanner.presentation.auth.AuthComponent
 import com.partyplanner.presentation.auth.AuthState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AuthScreen(component: AuthComponent) {
@@ -115,7 +117,7 @@ private fun AuthHero() {
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Organisez vos événements",
+                text = stringResource(Res.string.auth_tagline),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.75f)
             )
@@ -136,13 +138,13 @@ private fun AuthTabSwitcher(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         AuthTab(
-            text = "Connexion",
+            text = stringResource(Res.string.auth_tab_login),
             selected = mode == AuthMode.Login,
             onClick = { onModeChange(AuthMode.Login) },
             modifier = Modifier.weight(1f)
         )
         AuthTab(
-            text = "Inscription",
+            text = stringResource(Res.string.auth_tab_register),
             selected = mode == AuthMode.Register,
             onClick = { onModeChange(AuthMode.Register) },
             modifier = Modifier.weight(1f)
@@ -198,7 +200,7 @@ private fun LoginForm(
         AuthTextField(
             value = email,
             onValueChange = { email = it },
-            label = "Email",
+            label = stringResource(Res.string.auth_field_email),
             keyboardType = KeyboardType.Email,
             imeAction = ImeAction.Next,
             onImeAction = { focusManager.moveFocus(FocusDirection.Down) }
@@ -209,7 +211,7 @@ private fun LoginForm(
         AuthTextField(
             value = password,
             onValueChange = { password = it },
-            label = "Mot de passe",
+            label = stringResource(Res.string.auth_field_password),
             keyboardType = KeyboardType.Password,
             imeAction = ImeAction.Done,
             onImeAction = { focusManager.clearFocus() },
@@ -217,7 +219,8 @@ private fun LoginForm(
             trailingIcon = {
                 TextButton(onClick = { passwordVisible = !passwordVisible }) {
                     Text(
-                        text = if (passwordVisible) "Cacher" else "Voir",
+                        text = if (passwordVisible) stringResource(Res.string.auth_password_hide)
+                               else stringResource(Res.string.auth_password_show),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -230,7 +233,7 @@ private fun LoginForm(
         Spacer(Modifier.height(20.dp))
 
         GradientButton(
-            text = "Se connecter",
+            text = stringResource(Res.string.auth_btn_sign_in),
             isLoading = isLoading,
             enabled = email.isNotBlank() && password.isNotBlank(),
             onClick = { onSubmit(email, password) }
@@ -255,7 +258,7 @@ private fun RegisterForm(
         AuthTextField(
             value = displayName,
             onValueChange = { displayName = it },
-            label = "Nom affiché",
+            label = stringResource(Res.string.auth_field_display_name),
             imeAction = ImeAction.Next,
             onImeAction = { focusManager.moveFocus(FocusDirection.Down) }
         )
@@ -265,7 +268,7 @@ private fun RegisterForm(
         AuthTextField(
             value = email,
             onValueChange = { email = it },
-            label = "Email",
+            label = stringResource(Res.string.auth_field_email),
             keyboardType = KeyboardType.Email,
             imeAction = ImeAction.Next,
             onImeAction = { focusManager.moveFocus(FocusDirection.Down) }
@@ -276,7 +279,7 @@ private fun RegisterForm(
         AuthTextField(
             value = password,
             onValueChange = { password = it },
-            label = "Mot de passe",
+            label = stringResource(Res.string.auth_field_password),
             keyboardType = KeyboardType.Password,
             imeAction = ImeAction.Next,
             onImeAction = { focusManager.moveFocus(FocusDirection.Down) },
@@ -284,7 +287,8 @@ private fun RegisterForm(
             trailingIcon = {
                 TextButton(onClick = { passwordVisible = !passwordVisible }) {
                     Text(
-                        text = if (passwordVisible) "Cacher" else "Voir",
+                        text = if (passwordVisible) stringResource(Res.string.auth_password_hide)
+                               else stringResource(Res.string.auth_password_show),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -297,7 +301,7 @@ private fun RegisterForm(
         AuthTextField(
             value = phone,
             onValueChange = { phone = it },
-            label = "Téléphone (optionnel)",
+            label = stringResource(Res.string.auth_field_phone),
             keyboardType = KeyboardType.Phone,
             imeAction = ImeAction.Done,
             onImeAction = { focusManager.clearFocus() }
@@ -308,7 +312,7 @@ private fun RegisterForm(
         Spacer(Modifier.height(20.dp))
 
         GradientButton(
-            text = "Créer un compte",
+            text = stringResource(Res.string.auth_btn_create_account),
             isLoading = isLoading,
             enabled = email.isNotBlank() && password.isNotBlank() && displayName.isNotBlank(),
             onClick = { onSubmit(email, password, displayName, phone.ifBlank { null }) }

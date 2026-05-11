@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="common_cancel">Cancel</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_next">Next</string>
+    <string name="common_by">by</string>
+    <string name="common_location">Location</string>
+
+    <!-- Auth -->
+    <string name="auth_tagline">Organize your events</string>
+    <string name="auth_tab_login">Login</string>
+    <string name="auth_tab_register">Register</string>
+    <string name="auth_field_email">Email</string>
+    <string name="auth_field_password">Password</string>
+    <string name="auth_field_display_name">Display name</string>
+    <string name="auth_field_phone">Phone (optional)</string>
+    <string name="auth_password_show">Show</string>
+    <string name="auth_password_hide">Hide</string>
+    <string name="auth_btn_sign_in">Sign in</string>
+    <string name="auth_btn_create_account">Create account</string>
+
+    <!-- Profile -->
+    <string name="profile_section_name">DISPLAY NAME</string>
+    <string name="profile_section_theme">THEME</string>
+    <string name="profile_theme_system">System</string>
+    <string name="profile_theme_light">Light</string>
+    <string name="profile_theme_dark">Dark</string>
+    <string name="profile_btn_logout">Log out</string>
+    <string name="profile_dialog_logout_title">Log out?</string>
+    <string name="profile_dialog_logout_text">You\'ll need to sign in again to access the app.</string>
+    <string name="profile_dialog_logout_confirm">Log out</string>
+
+    <!-- Home -->
+    <string name="home_calendar">Calendar</string>
+    <string name="home_today">Today</string>
+    <string name="home_month">⊞ Month</string>
+    <string name="home_my_events">My events</string>
+    <string name="home_events_on">Events on %1$s</string>
+    <string name="home_show_all">Show all</string>
+    <string name="home_badge_organizer">Organizer</string>
+    <string name="home_badge_guest">Guest</string>
+    <string name="home_empty_title">No events yet</string>
+    <string name="home_empty_hint">Create your first event with the + button</string>
+    <string name="home_empty_filtered_title">No events today</string>
+    <string name="home_empty_filtered_hint">Select another date or create an event</string>
+
+    <!-- Invitation -->
+    <string name="invitation_organized_by">Organized by</string>
+    <string name="invitation_date">Date</string>
+    <string name="invitation_until">Until</string>
+    <string name="invitation_back">Back</string>
+    <string name="invitation_is_organizer">You are the organizer of this event.</string>
+    <string name="invitation_rsvp_question">Will you be there?</string>
+    <string name="invitation_rsvp_change">Change your response</string>
+    <string name="invitation_rsvp_accept">I\'ll be there!</string>
+    <string name="invitation_rsvp_maybe">Maybe</string>
+    <string name="invitation_rsvp_decline">I can\'t make it</string>
+    <string name="invitation_status_accepted">You accepted</string>
+    <string name="invitation_status_declined">You declined</string>
+    <string name="invitation_status_maybe">You responded maybe</string>
+    <string name="invitation_status_pending">Pending response</string>
+
+    <!-- Create event -->
+    <string name="create_event_title">New event</string>
+    <string name="create_event_field_title">Title *</string>
+    <string name="create_event_field_start_date">Start date *</string>
+    <string name="create_event_field_end_date">End date</string>
+    <string name="create_event_field_description">Description</string>
+    <string name="create_event_btn_create">Create event</string>
+
+    <!-- Event detail - tabs -->
+    <string name="detail_tab_guests">Guests</string>
+    <string name="detail_tab_items">Items</string>
+    <string name="detail_tab_chat">Chat</string>
+    <string name="detail_tab_carpool">Carpool</string>
+
+    <!-- Event detail - stats -->
+    <string name="detail_stat_guests">Guests</string>
+    <string name="detail_stat_confirmed">Confirmed</string>
+    <string name="detail_stat_rides">Rides</string>
+
+    <!-- Event detail - guests tab -->
+    <string name="detail_guests_empty">No guests yet</string>
+    <string name="detail_guests_count">GUESTS (%1$d)</string>
+    <string name="detail_invite_copy">🔗 Copy invite link</string>
+    <string name="detail_invite_copied">✅ Link copied!</string>
+    <string name="detail_btn_delete_event">Delete event</string>
+    <string name="detail_dialog_delete_title">Delete event?</string>
+    <string name="detail_dialog_delete_text">This action cannot be undone.</string>
+
+    <!-- Event detail - items tab -->
+    <string name="detail_items_add_request">+ Need</string>
+    <string name="detail_items_add_brought">I\'m bringing…</string>
+    <string name="detail_items_needed_header">NEEDED (%1$d)</string>
+    <string name="detail_items_brought_header">BROUGHT (%1$d)</string>
+    <string name="detail_items_empty">No items yet</string>
+    <string name="detail_items_sheet_need_title">We need…</string>
+    <string name="detail_items_sheet_need_hint">E.g.: chips, orange juice, napkins…</string>
+    <string name="detail_items_sheet_brought_title">What I\'m bringing</string>
+    <string name="detail_items_sheet_brought_hint">E.g.: fruit salad, sodas, platter…</string>
+    <string name="detail_items_quantity">Quantity:</string>
+
+    <!-- Event detail - carpool tab -->
+    <string name="detail_carpool_offer_btn">🚗 Offer a ride</string>
+    <string name="detail_carpool_empty">No rides offered yet</string>
+    <string name="detail_carpool_seats">Available seats:</string>
+    <string name="detail_carpool_departure">Departure point (optional)</string>
+    <string name="detail_carpool_notes">Notes (optional)</string>
+    <string name="detail_carpool_create">Create ride</string>
+    <string name="detail_carpool_sheet_title">Offer a ride</string>
+    <string name="detail_carpool_join_title">Join the ride</string>
+    <string name="detail_carpool_pickup">Pickup point (optional)</string>
+    <string name="detail_carpool_join_btn">I\'m in! 🙋</string>
+    <string name="detail_carpool_leave_btn">I\'m out 🚪</string>
+    <string name="detail_carpool_full">Full</string>
+    <string name="detail_carpool_seats_count">%1$d/%2$d seats</string>
+    <string name="detail_carpool_me">(me)</string>
+
+    <!-- Event detail - chat tab -->
+    <string name="detail_chat_empty">No messages yet.\nBe the first! 👋</string>
+    <string name="detail_chat_placeholder">Message…</string>
+</resources>
