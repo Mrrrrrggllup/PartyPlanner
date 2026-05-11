@@ -27,6 +27,8 @@ import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.number
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 
@@ -564,11 +566,11 @@ private fun kotlinx.datetime.LocalDateTime.formatDisplay(): String {
 private fun LocalDate.formatShort(): String {
     val months = listOf("jan", "fév", "mar", "avr", "mai", "juin",
                         "juil", "août", "sep", "oct", "nov", "déc")
-    return "$dayOfMonth ${months[monthNumber - 1]}"
+    return "$day ${months[month.number - 1]}"
 }
 
 private fun LocalDate.formatMonth(): String {
     val months = listOf("Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
                         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre")
-    return "${months[monthNumber - 1]} $year"
+    return "${months[month.number - 1]} $year"
 }

@@ -19,7 +19,7 @@ import com.partyplanner.presentation.event.CreateEventComponent
 import com.partyplanner.presentation.event.CreateEventState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -486,7 +487,7 @@ private fun GuestRow(invitation: Invitation, modifier: Modifier = Modifier) {
 
 @Composable
 private fun InviteButton(token: String, modifier: Modifier = Modifier) {
-    val clipboardManager = LocalClipboardManager.current
+    val clipboardManager = LocalClipboard.current
     var copied by remember { mutableStateOf(false) }
 
     LaunchedEffect(copied) {
