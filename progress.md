@@ -187,11 +187,20 @@
 - [x] `EventDetailComponent` : 5 nouvelles actions items
 - [x] Tab Items : section "Ce qu'il manque" (ItemRequests, toggle fulfill, delete owner) + "Ce qu'on apporte" (ItemBrought, delete owner/auteur) + dialogs ajout (bottom sheet label + quantité)
 
-### Covoiturage ❌
-- [ ] `CarpoolOffers` + `CarpoolPassengers` (backend + UI)
+### Covoiturage ✅
+- [x] Tables `CarpoolOffers` + `CarpoolPassengers` (backend Exposed DAO)
+- [x] `CarpoolService` : getOffers, createOffer, deleteOffer, joinOffer, leaveOffer
+- [x] Routes : `GET/POST /events/{id}/carpool`, `POST /{offerId}/join`, `POST /{offerId}/leave`, `DELETE /{offerId}`
+- [x] Shared : `CarpoolOffer` + `CarpoolPassenger` domain models, `CarpoolApi`, `CarpoolRepository`, 5 use cases
+- [x] Tab Covoit : liste offres (`CarpoolOfferCard`), création (`CreateCarpoolSheet`), rejoindre (`JoinCarpoolSheet`), quitter/supprimer
 
-### Chat ❌
-- [ ] Chat WebSocket (Ktor natif)
+### Chat ✅
+- [x] Table `ChatMessages` (backend Exposed DAO, soft-delete)
+- [x] `ChatService` : sessions WebSocket par room (ConcurrentHashMap), broadcast, checkAccess, getHistory, saveMessage
+- [x] Route WebSocket `GET /events/{id}/chat?token={jwt}` — auth, historique au connect, broadcast
+- [x] Shared : `ChatMessage` domain model, `ChatApi` (Ktor WS, http→ws), `ChatRepository`, `ChatRepositoryImpl` (SharedFlow)
+- [x] `DefaultEventDetailComponent` : `connectChat()` + `onSendMessage()`, collect SharedFlow → state
+- [x] Tab Chat : `ChatTabLayout` (LazyColumn bulles, input, send), `ChatBubble` (mine/autres), auto-scroll
 
 ### Push ❌
 - [ ] Firebase Cloud Messaging (push notifications invitations + chat)
