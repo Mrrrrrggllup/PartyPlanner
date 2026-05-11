@@ -16,7 +16,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -36,6 +35,7 @@ import com.partyplanner.presentation.event.EventDetailComponent
 import com.partyplanner.presentation.event.EventDetailState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 private enum class DetailTab(val icon: String) {
@@ -487,7 +487,8 @@ private fun GuestRow(invitation: Invitation, modifier: Modifier = Modifier) {
 
 @Composable
 private fun InviteButton(token: String, modifier: Modifier = Modifier) {
-    val clipboardManager = LocalClipboard.current
+    @Suppress("DEPRECATION")
+    val clipboardManager = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
 
     LaunchedEffect(copied) {
@@ -508,6 +509,7 @@ private fun InviteButton(token: String, modifier: Modifier = Modifier) {
             )
             .border(1.5.dp, MaterialTheme.colorScheme.primary, AppShapes.TextField)
             .clickable {
+                @Suppress("DEPRECATION")
                 clipboardManager.setText(AnnotatedString("partyplanner://invite/$token"))
                 copied = true
             },
