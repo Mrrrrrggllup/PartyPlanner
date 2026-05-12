@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.partyplanner.core.AppConfig
 import com.partyplanner.domain.model.Event
+import com.partyplanner.domain.model.InvitationStatus
 import partyplanner.composeapp.generated.resources.*
 import com.partyplanner.presentation.home.HomeComponent
 import com.partyplanner.presentation.home.HomeState
@@ -479,17 +480,27 @@ private fun EventCard(event: Event, isOwner: Boolean, onClick: () -> Unit, modif
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(8.dp))
+                val isPending = event.currentUserInvitationStatus == InvitationStatus.PENDING
                 Surface(
                     shape = AppShapes.Pill,
-                    color = if (isOwner) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.secondaryContainer
+                    color = when {
+                        isOwner   -> MaterialTheme.colorScheme.primaryContainer
+                        isPending -> MaterialTheme.colorScheme.tertiaryContainer
+                        else      -> MaterialTheme.colorScheme.secondaryContainer
+                    }
                 ) {
                     Text(
-                        text     = if (isOwner) stringResource(Res.string.home_badge_organizer)
-                                   else stringResource(Res.string.home_badge_guest),
+                        text = when {
+                            isOwner   -> stringResource(Res.string.home_badge_organizer)
+                            isPending -> stringResource(Res.string.home_badge_pending)
+                            else      -> stringResource(Res.string.home_badge_guest)
+                        },
                         style    = MaterialTheme.typography.labelMedium,
-                        color    = if (isOwner) MaterialTheme.colorScheme.primary
-                                   else MaterialTheme.colorScheme.secondary,
+                        color    = when {
+                            isOwner   -> MaterialTheme.colorScheme.primary
+                            isPending -> MaterialTheme.colorScheme.tertiary
+                            else      -> MaterialTheme.colorScheme.secondary
+                        },
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }

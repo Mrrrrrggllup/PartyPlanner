@@ -12,6 +12,8 @@ import io.ktor.websocket.readText
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+private val wsJson = Json { isLenient = true; ignoreUnknownKeys = true }
+
 fun Route.chatRoutes(chatService: ChatService, authService: AuthService) {
     webSocket("/events/{id}/chat") {
         val eventId = call.parameters["id"]?.toIntOrNull()
@@ -54,13 +56,15 @@ fun Route.chatRoutes(chatService: ChatService, authService: AuthService) {
             for (frame in incoming) {
                 if (frame is Frame.Text) {
                     val dto = runCatching {
-                        Json.decodeFromString<SendChatMessageDto>(frame.readText())
+                        wsJson.decodeFromString<SendChatMessageDto>(frame.readText())
                     }.getOrNull() ?: continue
 
                     if (dto.content.isBlank()) continue
 
-                    val saved = chatService.saveMessage(eventId, userId, dto.content.trim())
-                    chatService.broadcast(eventId, saved)
+                    runCatching {
+                        val saved = chatService.saveMessage(eventId, userId, dto.content.trim())
+                        chatService.broadcast(eventId, saved)
+                    }
                 }
             }
         } finally {

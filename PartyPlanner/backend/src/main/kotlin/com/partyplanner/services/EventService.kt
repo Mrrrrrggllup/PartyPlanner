@@ -14,7 +14,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -25,21 +24,21 @@ class EventService {
 
     suspend fun getEventsForUser(userId: Int): List<EventResponse> = withContext(Dispatchers.IO) {
         transaction {
-            val ownedEvents = EventEntity.find { Events.ownerId eq userId }.toList()
+            val ownedEvents = EventEntity.find { Events.ownerId eq userId }
+                .map { it.toResponse(null) }
 
-            val invitedEventIds = InvitationEntity
-                .find {
-                    (Invitations.userId eq userId) and
-                    (Invitations.status inList listOf(InvitationStatus.ACCEPTED, InvitationStatus.MAYBE))
-                }
-                .map { it.event.id.value }
+            val invitations = InvitationEntity.find {
+                (Invitations.userId eq userId) and
+                (Invitations.status inList listOf(
+                    InvitationStatus.ACCEPTED, InvitationStatus.MAYBE, InvitationStatus.PENDING
+                ))
+            }
 
-            val invitedEvents = invitedEventIds.mapNotNull { EventEntity.findById(it) }
+            val invitedEvents = invitations.map { inv -> inv.event.toResponse(inv.status) }
 
             (ownedEvents + invitedEvents)
-                .distinctBy { it.id.value }
+                .distinctBy { it.id }
                 .sortedBy { it.startDate }
-                .map { it.toResponse() }
         }
     }
 
@@ -47,11 +46,11 @@ class EventService {
         transaction {
             val event = EventEntity.findById(id) ?: error("Event not found")
             val isOwner = event.owner.id.value == userId
-            val isInvited = InvitationEntity.find {
+            val invitation = InvitationEntity.find {
                 (Invitations.eventId eq id) and (Invitations.userId eq userId)
-            }.firstOrNull() != null
-            require(isOwner || isInvited) { "Access denied" }
-            event.toResponse()
+            }.firstOrNull()
+            require(isOwner || invitation != null) { "Access denied" }
+            event.toResponse(if (isOwner) null else invitation?.status)
         }
     }
 
@@ -68,7 +67,7 @@ class EventService {
                 this.owner  = owner
                 inviteToken = java.util.UUID.randomUUID().toString()
                 createdAt   = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-            }.toResponse()
+            }.toResponse(null)
         }
     }
 
@@ -81,7 +80,7 @@ class EventService {
             request.location?.let    { event.location = it }
             request.startDate?.let   { event.startDate = it }
             request.endDate?.let     { event.endDate = it }
-            event.toResponse()
+            event.toResponse(null)
         }
     }
 
@@ -93,15 +92,16 @@ class EventService {
         }
     }
 
-    private fun EventEntity.toResponse() = EventResponse(
-        id          = id.value,
-        title       = title,
-        description = description,
-        location    = location,
-        startDate   = startDate,
-        endDate     = endDate,
-        ownerId     = owner.id.value,
-        inviteToken = inviteToken,
-        createdAt   = createdAt,
+    private fun EventEntity.toResponse(currentUserInvitationStatus: InvitationStatus?) = EventResponse(
+        id                          = id.value,
+        title                       = title,
+        description                 = description,
+        location                    = location,
+        startDate                   = startDate,
+        endDate                     = endDate,
+        ownerId                     = owner.id.value,
+        inviteToken                 = inviteToken,
+        createdAt                   = createdAt,
+        currentUserInvitationStatus = currentUserInvitationStatus?.name,
     )
 }

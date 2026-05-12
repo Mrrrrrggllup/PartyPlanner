@@ -205,6 +205,28 @@
 ### Push ❌
 - [ ] Firebase Cloud Messaging (push notifications invitations + chat)
 
+---
+
+## Déploiement & Infra ✅
+
+- [x] Serveur VPS Hetzner — backend Ktor déployé via Docker
+- [x] GitHub Actions : build + push image GHCR + deploy SSH (déclenché sur push `backend/` ou `shared/`)
+- [x] `workflow_dispatch` ajouté pour déclenchement manuel
+- [x] `network_security_config.xml` — cleartext HTTP autorisé pour 10.0.2.2 (émulateur) et 51.15.128.216 (prod)
+- [x] `PlatformConfig.android.kt` — `BASE_URL` via `BuildConfig` du module `shared` (debug/release)
+- [x] Firebase App Distribution — pipeline de déploiement APK (keystore signé, release notes, testeurs par email)
+- [x] `versionCode = 2 / versionName = 1.1`
+
+## Localisation ✅ (partiel)
+
+- [x] `values/strings.xml` (EN) + `values-fr/strings.xml` (FR) — ~90 strings
+- [x] Tous les écrans migrés vers `stringResource()` : Auth, Profile, Home, Invitation, CreateEvent, EventDetail
+- [x] `DetailTab` enum nettoyé — `localizedLabel` extension `@Composable`
+
+### Bugs connus à corriger
+- [ ] **Bug #1 — Apostrophes affichées avec `\`** : les chaînes contenant `\'` dans les XML Compose MP affichent le slash littéralement (ex: "J\'y serai" au lieu de "J'y serai"). À corriger : remplacer `\'` par `'` dans les strings.xml CMP (contrairement à Android XML, CMP n'utilise pas ce format d'échappement).
+- [ ] **Bug #2 — Chat vide** : les messages du chat ne s'affichent pas dans le Tab Chat. Vérifier la connexion WebSocket en prod (URL `ws://` vs `wss://`, token JWT, accès réseau VPS).
+
 ## Phase 5 — Store ❌
 - [ ] Google Play
 - [ ] TestFlight (Codemagic)

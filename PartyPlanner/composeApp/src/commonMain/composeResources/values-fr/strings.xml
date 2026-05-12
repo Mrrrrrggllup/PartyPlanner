@@ -29,19 +29,19 @@
     <string name="profile_theme_dark">Sombre</string>
     <string name="profile_btn_logout">Se déconnecter</string>
     <string name="profile_dialog_logout_title">Se déconnecter ?</string>
-    <string name="profile_dialog_logout_text">Vous devrez vous reconnecter pour accéder à l\'application.</string>
+    <string name="profile_dialog_logout_text">Vous devrez vous reconnecter pour accéder à l'application.</string>
     <string name="profile_dialog_logout_confirm">Déconnexion</string>
 
     <!-- Home -->
     <string name="home_calendar">Calendrier</string>
-    <string name="home_today">Aujourd\'hui</string>
+    <string name="home_today">Aujourd'hui</string>
     <string name="home_month">⊞ Mois</string>
     <string name="home_my_events">Mes événements</string>
     <string name="home_events_on">Événements du %1$s</string>
     <string name="home_show_all">Tout afficher</string>
     <string name="home_badge_organizer">Organisateur</string>
     <string name="home_badge_guest">Invité</string>
-    <string name="home_empty_title">Aucun événement pour l\'instant</string>
+    <string name="home_empty_title">Aucun événement pour l'instant</string>
     <string name="home_empty_hint">Crée ton premier événement avec le bouton +</string>
     <string name="home_empty_filtered_title">Aucun événement ce jour</string>
     <string name="home_empty_filtered_hint">Sélectionne une autre date ou crée un événement</string>
@@ -49,12 +49,12 @@
     <!-- Invitation -->
     <string name="invitation_organized_by">Organisé par</string>
     <string name="invitation_date">Date</string>
-    <string name="invitation_until">Jusqu\'au</string>
+    <string name="invitation_until">Jusqu'au</string>
     <string name="invitation_back">Retour</string>
-    <string name="invitation_is_organizer">Vous êtes l\'organisateur de cet événement.</string>
+    <string name="invitation_is_organizer">Vous êtes l'organisateur de cet événement.</string>
     <string name="invitation_rsvp_question">Serez-vous présent ?</string>
     <string name="invitation_rsvp_change">Modifier votre réponse</string>
-    <string name="invitation_rsvp_accept">J\'y serai !</string>
+    <string name="invitation_rsvp_accept">J'y serai !</string>
     <string name="invitation_rsvp_maybe">Peut-être</string>
     <string name="invitation_rsvp_decline">Je ne pourrai pas</string>
     <string name="invitation_status_accepted">Vous avez accepté</string>
@@ -68,7 +68,7 @@
     <string name="create_event_field_start_date">Date de début *</string>
     <string name="create_event_field_end_date">Date de fin</string>
     <string name="create_event_field_description">Description</string>
-    <string name="create_event_btn_create">Créer l\'événement</string>
+    <string name="create_event_btn_create">Créer l'événement</string>
 
     <!-- Event detail - tabs -->
     <string name="detail_tab_guests">Invités</string>
@@ -82,29 +82,35 @@
     <string name="detail_stat_rides">Covoits</string>
 
     <!-- Event detail - guests tab -->
-    <string name="detail_guests_empty">Aucun invité pour l\'instant</string>
+    <string name="detail_guests_empty">Aucun invité pour l'instant</string>
+    <string name="detail_invite_email_hint">Email de l'invité</string>
+    <string name="detail_invite_email_btn">Inviter</string>
+    <string name="detail_invite_success">✅ %1$s a été invité(e) !</string>
+    <string name="detail_invite_already">Utilisateur déjà invité</string>
+    <string name="detail_rsvp_title">Votre invitation</string>
+    <string name="home_badge_pending">Invitation</string>
     <string name="detail_guests_count">INVITÉS (%1$d)</string>
-    <string name="detail_invite_copy">🔗 Copier le lien d\'invitation</string>
+    <string name="detail_invite_copy">🔗 Copier le lien d'invitation</string>
     <string name="detail_invite_copied">✅ Lien copié !</string>
-    <string name="detail_btn_delete_event">Supprimer l\'événement</string>
-    <string name="detail_dialog_delete_title">Supprimer l\'événement ?</string>
+    <string name="detail_btn_delete_event">Supprimer l'événement</string>
+    <string name="detail_dialog_delete_title">Supprimer l'événement ?</string>
     <string name="detail_dialog_delete_text">Cette action est irréversible.</string>
 
     <!-- Event detail - items tab -->
     <string name="detail_items_add_request">+ Besoin</string>
-    <string name="detail_items_add_brought">J\'apporte…</string>
-    <string name="detail_items_needed_header">CE QU\'IL MANQUE (%1$d)</string>
-    <string name="detail_items_brought_header">CE QU\'ON APPORTE (%1$d)</string>
-    <string name="detail_items_empty">Aucun item pour l\'instant</string>
+    <string name="detail_items_add_brought">J'apporte…</string>
+    <string name="detail_items_needed_header">CE QU'IL MANQUE (%1$d)</string>
+    <string name="detail_items_brought_header">CE QU'ON APPORTE (%1$d)</string>
+    <string name="detail_items_empty">Aucun item pour l'instant</string>
     <string name="detail_items_sheet_need_title">On a besoin de…</string>
-    <string name="detail_items_sheet_need_hint">Ex: chips, jus d\'orange, serviettes…</string>
-    <string name="detail_items_sheet_brought_title">Ce que j\'apporte</string>
+    <string name="detail_items_sheet_need_hint">Ex: chips, jus d'orange, serviettes…</string>
+    <string name="detail_items_sheet_brought_title">Ce que j'apporte</string>
     <string name="detail_items_sheet_brought_hint">Ex: salade de fruits, sodas, plateau…</string>
     <string name="detail_items_quantity">Quantité :</string>
 
     <!-- Event detail - carpool tab -->
     <string name="detail_carpool_offer_btn">🚗 Proposer un trajet</string>
-    <string name="detail_carpool_empty">Aucun trajet proposé pour l\'instant</string>
+    <string name="detail_carpool_empty">Aucun trajet proposé pour l'instant</string>
     <string name="detail_carpool_seats">Places disponibles :</string>
     <string name="detail_carpool_departure">Point de départ (optionnel)</string>
     <string name="detail_carpool_notes">Notes (optionnel)</string>
@@ -119,6 +125,6 @@
     <string name="detail_carpool_me">(moi)</string>
 
     <!-- Event detail - chat tab -->
-    <string name="detail_chat_empty">Aucun message pour l\'instant.\nSoyez le premier ! 👋</string>
+    <string name="detail_chat_empty">Aucun message pour l'instant.\nSoyez le premier ! 👋</string>
     <string name="detail_chat_placeholder">Message…</string>
 </resources>

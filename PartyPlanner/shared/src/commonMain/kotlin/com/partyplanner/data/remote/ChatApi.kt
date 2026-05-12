@@ -16,6 +16,8 @@ class ChatApi(
 ) {
     private var currentSession: DefaultClientWebSocketSession? = null
 
+    private val wsJson = Json { ignoreUnknownKeys = true; isLenient = true }
+
     // Suspends until the WS connection is closed — call inside a background coroutine
     suspend fun connect(eventId: Int, onMessage: (ChatMessageResponse) -> Unit) {
         val token = sessionStorage.getSession()?.token ?: error("Not authenticated")
@@ -29,7 +31,7 @@ class ChatApi(
                 for (frame in incoming) {
                     if (frame is Frame.Text) {
                         runCatching {
-                            Json.decodeFromString<ChatMessageResponse>(frame.readText())
+                            wsJson.decodeFromString<ChatMessageResponse>(frame.readText())
                         }.onSuccess { onMessage(it) }
                     }
                 }
@@ -41,7 +43,7 @@ class ChatApi(
 
     suspend fun send(content: String) {
         currentSession?.send(
-            Frame.Text(Json.encodeToString(SendChatMessageDto(content)))
+            Frame.Text(wsJson.encodeToString(SendChatMessageDto(content)))
         )
     }
 }

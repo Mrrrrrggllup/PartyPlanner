@@ -6,8 +6,10 @@ import com.partyplanner.db.tables.InvitationEntity
 import com.partyplanner.db.tables.InvitationStatus
 import com.partyplanner.db.tables.Invitations
 import com.partyplanner.db.tables.UserEntity
+import com.partyplanner.db.tables.Users
 import com.partyplanner.dto.InvitationResponse
 import com.partyplanner.dto.InviteInfoResponse
+import com.partyplanner.dto.UserSuggestionResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -85,6 +87,70 @@ class InvitationService {
             require(event.owner.id.value == userId) { "Accès refusé" }
             InvitationEntity.find { Invitations.eventId eq event.id }
                 .map { it.toResponse() }
+        }
+    }
+
+    suspend fun getInviteSuggestions(eventId: Int, ownerId: Int): List<UserSuggestionResponse> = withContext(Dispatchers.IO) {
+        transaction {
+            val event = EventEntity.findById(eventId) ?: error("Événement introuvable")
+            require(event.owner.id.value == ownerId) { "Accès refusé" }
+
+            val alreadyInvitedIds = InvitationEntity.find { Invitations.eventId eq event.id }
+                .map { it.user.id.value }.toSet()
+
+            val ownerEventIds = EventEntity.find { Events.ownerId eq ownerId }.map { it.id }
+
+            InvitationEntity.find { Invitations.eventId inList ownerEventIds }
+                .map { it.user }
+                .filter { it.id.value !in alreadyInvitedIds && it.id.value != ownerId }
+                .distinctBy { it.id.value }
+                .sortedBy { it.displayName }
+                .map { UserSuggestionResponse(it.id.value, it.displayName) }
+        }
+    }
+
+    suspend fun inviteByUserId(eventId: Int, ownerId: Int, targetUserId: Int): InvitationResponse = withContext(Dispatchers.IO) {
+        transaction {
+            val event = EventEntity.findById(eventId) ?: error("Événement introuvable")
+            require(event.owner.id.value == ownerId) { "Accès refusé" }
+            require(targetUserId != ownerId) { "Vous ne pouvez pas vous inviter vous-même" }
+
+            val invitedUser = UserEntity.findById(targetUserId) ?: error("Utilisateur introuvable")
+
+            val existing = InvitationEntity.find {
+                (Invitations.eventId eq event.id) and (Invitations.userId eq invitedUser.id)
+            }.firstOrNull()
+            require(existing == null) { "Utilisateur déjà invité" }
+
+            InvitationEntity.new {
+                this.event  = event
+                this.user   = invitedUser
+                this.status = InvitationStatus.PENDING
+            }.toResponse()
+        }
+    }
+
+    suspend fun inviteByEmail(eventId: Int, ownerId: Int, email: String): InvitationResponse = withContext(Dispatchers.IO) {
+        transaction {
+            val event = EventEntity.findById(eventId) ?: error("Événement introuvable")
+            require(event.owner.id.value == ownerId) { "Accès refusé" }
+
+            val invitedUser = UserEntity.find { Users.email eq email }.firstOrNull()
+                ?: error("Aucun utilisateur avec cet email")
+
+            require(invitedUser.id.value != ownerId) { "Vous ne pouvez pas vous inviter vous-même" }
+
+            val existing = InvitationEntity.find {
+                (Invitations.eventId eq event.id) and (Invitations.userId eq invitedUser.id)
+            }.firstOrNull()
+
+            require(existing == null) { "Utilisateur déjà invité" }
+
+            InvitationEntity.new {
+                this.event  = event
+                this.user   = invitedUser
+                this.status = InvitationStatus.PENDING
+            }.toResponse()
         }
     }
 

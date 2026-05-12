@@ -1,5 +1,7 @@
 package com.partyplanner.routes
 
+import com.partyplanner.dto.InviteByEmailRequest
+import com.partyplanner.dto.InviteByUserIdRequest
 import com.partyplanner.dto.RsvpRequest
 import com.partyplanner.services.InvitationService
 import io.ktor.http.*
@@ -32,6 +34,42 @@ fun Route.invitationRoutes(invitationService: InvitationService) {
             runCatching { invitationService.getEventInvitations(id, call.invUserId()) }
                 .onSuccess  { call.respond(it) }
                 .onFailure  { call.respond(HttpStatusCode.Forbidden, mapOf("error" to it.message)) }
+        }
+        get("/events/{id}/invite-suggestions") {
+            val eventId = call.parameters["id"]!!.toInt()
+            runCatching { invitationService.getInviteSuggestions(eventId, call.invUserId()) }
+                .onSuccess { call.respond(it) }
+                .onFailure { call.respond(HttpStatusCode.Forbidden, mapOf("error" to it.message)) }
+        }
+        post("/events/{id}/invite-user") {
+            val eventId = call.parameters["id"]!!.toInt()
+            val request = call.receive<InviteByUserIdRequest>()
+            runCatching { invitationService.inviteByUserId(eventId, call.invUserId(), request.userId) }
+                .onSuccess { call.respond(HttpStatusCode.Created, it) }
+                .onFailure {
+                    val status = when {
+                        it.message?.contains("Accès refusé") == true  -> HttpStatusCode.Forbidden
+                        it.message?.contains("déjà invité") == true   -> HttpStatusCode.Conflict
+                        it.message?.contains("introuvable") == true   -> HttpStatusCode.NotFound
+                        else                                           -> HttpStatusCode.BadRequest
+                    }
+                    call.respond(status, mapOf("error" to it.message))
+                }
+        }
+        post("/events/{id}/invite") {
+            val eventId = call.parameters["id"]!!.toInt()
+            val request = call.receive<InviteByEmailRequest>()
+            runCatching { invitationService.inviteByEmail(eventId, call.invUserId(), request.email.trim()) }
+                .onSuccess { call.respond(HttpStatusCode.Created, it) }
+                .onFailure {
+                    val status = when {
+                        it.message?.contains("Accès refusé") == true        -> HttpStatusCode.Forbidden
+                        it.message?.contains("déjà invité") == true         -> HttpStatusCode.Conflict
+                        it.message?.contains("Aucun utilisateur") == true   -> HttpStatusCode.NotFound
+                        else                                                 -> HttpStatusCode.BadRequest
+                    }
+                    call.respond(status, mapOf("error" to it.message))
+                }
         }
     }
 }

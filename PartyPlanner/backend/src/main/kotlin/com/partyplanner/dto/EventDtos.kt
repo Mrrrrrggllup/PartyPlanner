@@ -32,4 +32,5 @@ data class EventResponse(
     val ownerId: Int,
     val inviteToken: String?,
     val createdAt: LocalDateTime,
+    val currentUserInvitationStatus: String? = null,
 )

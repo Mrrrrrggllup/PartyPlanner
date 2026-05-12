@@ -5,6 +5,7 @@ import com.partyplanner.data.remote.dto.CreateEventRequest
 import com.partyplanner.data.remote.dto.EventResponse
 import com.partyplanner.data.remote.dto.UpdateEventRequest
 import com.partyplanner.domain.model.Event
+import com.partyplanner.domain.model.InvitationStatus
 import com.partyplanner.domain.repository.EventRepository
 import kotlinx.datetime.LocalDateTime
 
@@ -57,5 +58,8 @@ class EventRepositoryImpl(private val eventApi: EventApi) : EventRepository {
         ownerId     = ownerId,
         inviteToken = inviteToken,
         createdAt   = createdAt,
+        currentUserInvitationStatus = currentUserInvitationStatus?.let {
+            runCatching { InvitationStatus.valueOf(it) }.getOrNull()
+        },
     )
 }

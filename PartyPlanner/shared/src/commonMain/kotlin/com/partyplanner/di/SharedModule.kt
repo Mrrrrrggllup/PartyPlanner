@@ -33,7 +33,10 @@ import com.partyplanner.domain.usecase.event.GetEventUseCase
 import com.partyplanner.domain.usecase.event.GetEventsUseCase
 import com.partyplanner.domain.usecase.event.UpdateEventUseCase
 import com.partyplanner.domain.usecase.invitation.GetEventInvitationsUseCase
+import com.partyplanner.domain.usecase.invitation.GetInviteSuggestionsUseCase
 import com.partyplanner.domain.usecase.invitation.GetInviteInfoUseCase
+import com.partyplanner.domain.usecase.invitation.InviteByEmailUseCase
+import com.partyplanner.domain.usecase.invitation.InviteByUserIdUseCase
 import com.partyplanner.domain.usecase.invitation.RsvpToInvitationUseCase
 import com.partyplanner.domain.usecase.item.AddItemBroughtUseCase
 import com.partyplanner.domain.usecase.item.AddItemRequestUseCase
@@ -87,6 +90,9 @@ val sharedModule = module {
     factory { GetInviteInfoUseCase(get()) }
     factory { RsvpToInvitationUseCase(get()) }
     factory { GetEventInvitationsUseCase(get()) }
+    factory { InviteByEmailUseCase(get()) }
+    factory { InviteByUserIdUseCase(get()) }
+    factory { GetInviteSuggestionsUseCase(get()) }
 
     single { ItemApi(get(), BASE_URL, get()) }
     single<ItemRepository> { ItemRepositoryImpl(get()) }

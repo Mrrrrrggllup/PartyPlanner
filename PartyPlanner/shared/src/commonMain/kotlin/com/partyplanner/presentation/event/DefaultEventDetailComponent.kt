@@ -6,6 +6,11 @@ import com.partyplanner.data.local.SessionStorage
 import com.partyplanner.domain.usecase.event.DeleteEventUseCase
 import com.partyplanner.domain.usecase.event.GetEventUseCase
 import com.partyplanner.domain.usecase.invitation.GetEventInvitationsUseCase
+import com.partyplanner.domain.usecase.invitation.GetInviteSuggestionsUseCase
+import com.partyplanner.domain.usecase.invitation.InviteByEmailUseCase
+import com.partyplanner.domain.usecase.invitation.InviteByUserIdUseCase
+import com.partyplanner.domain.usecase.invitation.RsvpToInvitationUseCase
+import com.partyplanner.domain.model.InvitationStatus
 import com.partyplanner.domain.repository.ChatRepository
 import com.partyplanner.domain.usecase.carpool.CreateCarpoolOfferUseCase
 import com.partyplanner.domain.usecase.carpool.DeleteCarpoolOfferUseCase
@@ -38,8 +43,12 @@ class DefaultEventDetailComponent(
     private val onBack: () -> Unit,
 ) : EventDetailComponent, ComponentContext by componentContext, KoinComponent {
 
-    private val sessionStorage: SessionStorage              by inject()
+    private val sessionStorage: SessionStorage                         by inject()
     private val getEventInvitationsUseCase: GetEventInvitationsUseCase by inject()
+    private val inviteByEmailUseCase: InviteByEmailUseCase               by inject()
+    private val inviteByUserIdUseCase: InviteByUserIdUseCase             by inject()
+    private val getInviteSuggestionsUseCase: GetInviteSuggestionsUseCase by inject()
+    private val rsvpToInvitationUseCase: RsvpToInvitationUseCase        by inject()
     private val getCategoriesUseCase: GetCategoriesUseCase  by inject()
     private val getItemsUseCase: GetItemsUseCase            by inject()
     private val addItemRequestUseCase: AddItemRequestUseCase by inject()
@@ -67,15 +76,29 @@ class DefaultEventDetailComponent(
             getEventUseCase(eventId).fold(
                 onSuccess = { event ->
                     val isOwner = event.ownerId == currentUserId
-                    _state.value = EventDetailState.Success(event, isOwner, currentUserId = currentUserId)
+                    _state.value = EventDetailState.Success(
+                        event = event,
+                        isOwner = isOwner,
+                        currentUserId = currentUserId,
+                        currentUserInvitationStatus = event.currentUserInvitationStatus,
+                    )
                     loadInvitations()
                     loadItems()
                     loadCategories()
                     loadCarpoolOffers()
                     connectChat()
+                    if (isOwner) loadInviteSuggestions()
                 },
                 onFailure = { _state.value = EventDetailState.Error(it.message ?: "Erreur inconnue") }
             )
+        }
+    }
+
+    private fun loadInviteSuggestions() {
+        scope.launch {
+            getInviteSuggestionsUseCase(eventId).onSuccess { suggestions ->
+                updateSuccess { copy(inviteSuggestions = suggestions) }
+            }
         }
     }
 
@@ -203,6 +226,55 @@ class DefaultEventDetailComponent(
 
     override fun onSendMessage(content: String) {
         scope.launch { chatRepository.send(content) }
+    }
+
+    override fun onInviteByUserId(userId: Int) {
+        scope.launch {
+            inviteByUserIdUseCase(eventId, userId)
+                .onSuccess { invitation ->
+                    updateSuccess {
+                        copy(
+                            invitations      = invitations + invitation,
+                            inviteSuggestions = inviteSuggestions.filter { it.id != userId },
+                            inviteEmailResult = InviteEmailResult.Success(invitation.userDisplayName),
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    updateSuccess { copy(inviteEmailResult = InviteEmailResult.Error(e.message ?: "Erreur")) }
+                }
+        }
+    }
+
+    override fun onInviteByEmail(email: String) {
+        scope.launch {
+            inviteByEmailUseCase(eventId, email)
+                .onSuccess { invitation ->
+                    updateSuccess {
+                        copy(
+                            invitations       = invitations + invitation,
+                            inviteSuggestions = inviteSuggestions.filter { it.id != invitation.userId },
+                            inviteEmailResult = InviteEmailResult.Success(invitation.userDisplayName),
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    updateSuccess { copy(inviteEmailResult = InviteEmailResult.Error(e.message ?: "Erreur")) }
+                }
+        }
+    }
+
+    override fun onDismissInviteResult() {
+        updateSuccess { copy(inviteEmailResult = null) }
+    }
+
+    override fun onRsvp(status: InvitationStatus) {
+        val token = (state.value as? EventDetailState.Success)?.event?.inviteToken ?: return
+        scope.launch {
+            rsvpToInvitationUseCase(token, status).onSuccess {
+                updateSuccess { copy(currentUserInvitationStatus = status) }
+            }
+        }
     }
 
     override fun onLeaveCarpool(offerId: Int) {

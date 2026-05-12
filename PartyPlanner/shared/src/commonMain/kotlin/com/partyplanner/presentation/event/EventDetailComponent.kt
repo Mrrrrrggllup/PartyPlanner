@@ -1,5 +1,6 @@
 package com.partyplanner.presentation.event
 
+import com.partyplanner.domain.model.InvitationStatus
 import kotlinx.coroutines.flow.StateFlow
 
 interface EventDetailComponent {
@@ -16,4 +17,8 @@ interface EventDetailComponent {
     fun onJoinCarpool(offerId: Int, pickupPoint: String?)
     fun onLeaveCarpool(offerId: Int)
     fun onSendMessage(content: String)
+    fun onInviteByEmail(email: String)
+    fun onInviteByUserId(userId: Int)
+    fun onDismissInviteResult()
+    fun onRsvp(status: InvitationStatus)
 }

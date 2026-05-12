@@ -2,8 +2,11 @@ package com.partyplanner.data.remote
 
 import com.partyplanner.data.local.SessionStorage
 import com.partyplanner.data.remote.dto.InvitationResponse
+import com.partyplanner.data.remote.dto.InviteByEmailRequest
+import com.partyplanner.data.remote.dto.InviteByUserIdRequest
 import com.partyplanner.data.remote.dto.InviteInfoResponse
 import com.partyplanner.data.remote.dto.RsvpRequest
+import com.partyplanner.data.remote.dto.UserSuggestionResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -46,9 +49,38 @@ class InvitationApi(
         return response.body()
     }
 
+    suspend fun getInviteSuggestions(eventId: Int): List<UserSuggestionResponse> {
+        val response = httpClient.get("$baseUrl/events/$eventId/invite-suggestions") {
+            header(HttpHeaders.Authorization, bearerToken())
+        }
+        if (!response.status.isSuccess()) throw Exception(errorMessage(response))
+        return response.body()
+    }
+
+    suspend fun inviteByUserId(eventId: Int, userId: Int): InvitationResponse {
+        val response = httpClient.post("$baseUrl/events/$eventId/invite-user") {
+            header(HttpHeaders.Authorization, bearerToken())
+            contentType(ContentType.Application.Json)
+            setBody(InviteByUserIdRequest(userId))
+        }
+        if (!response.status.isSuccess()) throw Exception(errorMessage(response))
+        return response.body()
+    }
+
+    suspend fun inviteByEmail(eventId: Int, email: String): InvitationResponse {
+        val response = httpClient.post("$baseUrl/events/$eventId/invite") {
+            header(HttpHeaders.Authorization, bearerToken())
+            contentType(ContentType.Application.Json)
+            setBody(InviteByEmailRequest(email))
+        }
+        if (!response.status.isSuccess()) throw Exception(errorMessage(response))
+        return response.body()
+    }
+
     private suspend fun errorMessage(response: HttpResponse): String = when (response.status) {
-        HttpStatusCode.NotFound  -> "Invitation introuvable"
-        HttpStatusCode.Forbidden -> "Accès refusé"
+        HttpStatusCode.NotFound   -> "Aucun utilisateur avec cet email"
+        HttpStatusCode.Conflict   -> "Utilisateur déjà invité"
+        HttpStatusCode.Forbidden  -> "Accès refusé"
         HttpStatusCode.BadRequest -> runCatching {
             response.body<Map<String, String>>()["error"] ?: "Requête invalide"
         }.getOrDefault("Requête invalide")

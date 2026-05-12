@@ -12,4 +12,5 @@ data class Event(
     val ownerId: Int,
     val inviteToken: String?,
     val createdAt: LocalDateTime,
+    val currentUserInvitationStatus: InvitationStatus?,
 )

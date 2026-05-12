@@ -28,6 +28,7 @@ import com.partyplanner.domain.model.EventItems
 import com.partyplanner.domain.model.Invitation
 import com.partyplanner.domain.model.InvitationStatus
 import com.partyplanner.domain.model.ItemBrought
+import com.partyplanner.presentation.event.InviteEmailResult
 import com.partyplanner.domain.model.ItemCategory
 import com.partyplanner.domain.model.ItemRequest
 import partyplanner.composeapp.generated.resources.*
@@ -59,6 +60,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
     val state by component.state.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(DetailTab.INVITES) }
+    var inviteEmail by remember { mutableStateOf("") }
     var showAddItemRequestSheet by remember { mutableStateOf(false) }
     var showAddItemBroughtSheet by remember { mutableStateOf(false) }
     var showCreateCarpoolSheet by remember { mutableStateOf(false) }
@@ -107,6 +109,18 @@ fun EventDetailScreen(component: EventDetailComponent) {
 
                                 when (selectedTab) {
                                     DetailTab.INVITES -> {
+                                        // RSVP banner — non-owner seulement
+                                        if (!s.isOwner) {
+                                            item {
+                                                RsvpBanner(
+                                                    status   = s.currentUserInvitationStatus,
+                                                    onRsvp   = component::onRsvp,
+                                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                                )
+                                            }
+                                            item { Spacer(Modifier.height(12.dp)) }
+                                        }
+                                        // Invite by email + deep link — owner seulement
                                         if (s.isOwner) {
                                             s.event.inviteToken?.let { token ->
                                                 item {
@@ -115,8 +129,39 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                                         modifier = Modifier.padding(horizontal = 16.dp)
                                                     )
                                                 }
-                                                item { Spacer(Modifier.height(12.dp)) }
+                                                item { Spacer(Modifier.height(8.dp)) }
                                             }
+                                            if (s.inviteSuggestions.isNotEmpty()) {
+                                                item {
+                                                    InviteSuggestions(
+                                                        suggestions = s.inviteSuggestions,
+                                                        onInvite    = component::onInviteByUserId,
+                                                        modifier    = Modifier.padding(horizontal = 16.dp)
+                                                    )
+                                                }
+                                                item { Spacer(Modifier.height(4.dp)) }
+                                            }
+                                            item {
+                                                InviteByEmailRow(
+                                                    email    = inviteEmail,
+                                                    onEmail  = { inviteEmail = it },
+                                                    onInvite = {
+                                                        component.onInviteByEmail(inviteEmail.trim())
+                                                        inviteEmail = ""
+                                                    },
+                                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                                )
+                                            }
+                                            s.inviteEmailResult?.let { result ->
+                                                item {
+                                                    InviteResultChip(
+                                                        result   = result,
+                                                        onDismiss = component::onDismissInviteResult,
+                                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                                    )
+                                                }
+                                            }
+                                            item { Spacer(Modifier.height(8.dp)) }
                                         }
                                         if (s.invitations.isEmpty()) {
                                             item {
@@ -455,6 +500,168 @@ private fun DetailTabBar(
                 }
             }
         }
+    }
+}
+
+// ── RSVP banner (non-owner) ───────────────────────────────────────────────────
+
+@Composable
+private fun RsvpBanner(
+    status: InvitationStatus?,
+    onRsvp: (InvitationStatus) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gradA = MaterialTheme.appColors.gradA
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppShapes.Card)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.5.dp, MaterialTheme.colorScheme.outline, AppShapes.Card)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text  = stringResource(Res.string.detail_rsvp_title),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(
+                InvitationStatus.ACCEPTED to stringResource(Res.string.invitation_rsvp_accept),
+                InvitationStatus.MAYBE    to stringResource(Res.string.invitation_rsvp_maybe),
+                InvitationStatus.DECLINED to stringResource(Res.string.invitation_rsvp_decline),
+            ).forEach { (s, label) ->
+                val isSelected = status == s
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(36.dp)
+                        .clip(AppShapes.TextField)
+                        .then(
+                            if (isSelected) Modifier.background(brush = gradA)
+                            else Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                        )
+                        .clickable { onRsvp(s) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text  = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Invite suggestions (owner) ────────────────────────────────────────────────
+
+@Composable
+private fun InviteSuggestions(
+    suggestions: List<com.partyplanner.domain.model.UserSuggestion>,
+    onInvite: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gradA = MaterialTheme.appColors.gradA
+    LazyRow(
+        modifier            = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(suggestions, key = { it.id }) { user ->
+            val initial = user.displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+            Column(
+                modifier              = Modifier.clickable { onInvite(user.id) },
+                horizontalAlignment   = Alignment.CenterHorizontally,
+                verticalArrangement   = Arrangement.spacedBy(4.dp),
+            ) {
+                Box(
+                    modifier           = Modifier
+                        .size(44.dp)
+                        .clip(AppShapes.Avatar)
+                        .background(brush = gradA),
+                    contentAlignment   = Alignment.Center,
+                ) {
+                    Text(initial, color = Color.White, style = MaterialTheme.typography.titleMedium)
+                }
+                Text(
+                    text     = user.displayName.split(" ").first(),
+                    style    = MaterialTheme.typography.labelSmall,
+                    color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+// ── Invite by email (owner) ───────────────────────────────────────────────────
+
+@Composable
+private fun InviteByEmailRow(
+    email: String,
+    onEmail: (String) -> Unit,
+    onInvite: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedTextField(
+            value         = email,
+            onValueChange = onEmail,
+            label         = { Text(stringResource(Res.string.detail_invite_email_hint)) },
+            modifier      = Modifier.weight(1f),
+            shape         = AppShapes.TextField,
+            singleLine    = true,
+        )
+        Box(
+            modifier = Modifier
+                .size(width = 72.dp, height = 56.dp)
+                .clip(AppShapes.TextField)
+                .then(
+                    if (email.contains('@')) Modifier.background(brush = MaterialTheme.appColors.gradA)
+                    else Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                )
+                .clickable(enabled = email.contains('@'), onClick = onInvite),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text  = stringResource(Res.string.detail_invite_email_btn),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (email.contains('@')) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun InviteResultChip(
+    result: InviteEmailResult,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val (bg, text) = when (result) {
+        is InviteEmailResult.Success -> MaterialTheme.colorScheme.primaryContainer to
+            stringResource(Res.string.detail_invite_success, result.userName)
+        is InviteEmailResult.Error   -> MaterialTheme.colorScheme.errorContainer to result.message
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppShapes.TextField)
+            .background(bg)
+            .clickable(onClick = onDismiss)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(text, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+        Text("✕", style = MaterialTheme.typography.labelMedium)
     }
 }
 

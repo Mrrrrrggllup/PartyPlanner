@@ -28,3 +28,19 @@ data class InvitationResponse(
 data class RsvpRequest(
     val status: String,
 )
+
+@Serializable
+data class InviteByEmailRequest(
+    val email: String,
+)
+
+@Serializable
+data class InviteByUserIdRequest(
+    val userId: Int,
+)
+
+@Serializable
+data class UserSuggestionResponse(
+    val id: Int,
+    val displayName: String,
+)
