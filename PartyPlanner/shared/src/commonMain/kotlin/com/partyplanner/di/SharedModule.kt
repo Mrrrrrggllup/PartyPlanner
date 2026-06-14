@@ -74,7 +74,7 @@ val sharedModule = module {
             HttpResponseValidator {
                 validateResponse { response ->
                     if (response.status == HttpStatusCode.Unauthorized &&
-                        !response.request.url.encodedPath.startsWith("/auth")
+                        !response.call.request.url.encodedPath.startsWith("/auth")
                     ) {
                         sessionStorage.clearSession()
                         AuthEventBus.emit()
