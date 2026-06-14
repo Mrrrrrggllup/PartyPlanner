@@ -95,12 +95,14 @@ fun EventDetailScreen(component: EventDetailComponent) {
                             if (total > 0) "👥 $confirmed/$total présents" else null
                         },
                     )
-                    if (!s.isOwner) {
-                        QuickRsvpBar(
-                            status  = s.currentUserInvitationStatus,
-                            onRsvp  = component::onRsvp,
-                        )
-                    }
+                    StatsRow(
+                        confirmed  = s.invitations.count { it.status == InvitationStatus.ACCEPTED },
+                        totalItems = s.items.requests.size + s.items.brought.size,
+                        totalChat  = s.chatMessages.size,
+                        covoits    = s.carpoolOffers.offers.size,
+                        onTabClick = { selectedTab = it },
+                        modifier   = Modifier.padding(16.dp)
+                    )
                     PullToRefreshBox(
                         isRefreshing = s.isRefreshing,
                         onRefresh    = component::onRefresh,
@@ -119,18 +121,6 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = 16.dp)
                             ) {
-                                item {
-                                    StatsRow(
-                                        confirmed  = s.invitations.count { it.status == InvitationStatus.ACCEPTED },
-                                        totalItems = s.items.requests.size + s.items.brought.size,
-                                        unreadChat = s.unreadChatCount,
-                                        covoits    = s.carpoolOffers.size,
-                                        onTabClick = { selectedTab = it },
-                                        modifier   = Modifier.padding(16.dp)
-                                    )
-                                }
-                                item { Spacer(Modifier.height(4.dp)) }
-
                                 when (selectedTab) {
                                     DetailTab.INVITES -> {
                                         item {
@@ -276,7 +266,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                         }
                                         item { Spacer(Modifier.height(8.dp)) }
                                         CarpoolTabContent(
-                                            offers        = s.carpoolOffers,
+                                            offers        = s.carpoolOffers.offers,
                                             currentUserId = s.currentUserId,
                                             isOwner       = s.isOwner,
                                             onJoin        = { offerId -> joinCarpoolOfferId = offerId },
@@ -297,6 +287,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
                             if (tab == DetailTab.CHAT) component.onChatRead()
                             else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
                             if (tab == DetailTab.ITEMS) component.onItemsRead()
+                            if (tab == DetailTab.COVOIT) component.onCarpoolRead()
                             selectedTab = tab
                         },
                         modifier = Modifier.navigationBarsPadding(),
@@ -304,7 +295,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
                             DetailTab.CHAT   to s.unreadChatCount,
                             DetailTab.ITEMS  to s.items.newItemsCount,
                             DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
-                            DetailTab.COVOIT to s.carpoolOffers.count { it.seatsRemaining > 0 },
+                            DetailTab.COVOIT to s.carpoolOffers.newCarpoolCount,
                         ),
                     )
                 }
@@ -421,7 +412,7 @@ private fun DetailHero(
             .fillMaxWidth()
             .background(brush = gradA)
             .statusBarsPadding()
-            .height(140.dp)
+            .height(if (organizerName != null) 164.dp else 140.dp)
     ) {
         Text(
             text = "🎊",
@@ -519,7 +510,7 @@ private fun DetailHero(
 private fun StatsRow(
     confirmed: Int,
     totalItems: Int,
-    unreadChat: Int,
+    totalChat: Int,
     covoits: Int,
     onTabClick: (DetailTab) -> Unit,
     modifier: Modifier = Modifier
@@ -544,7 +535,7 @@ private fun StatsRow(
             modifier = Modifier.weight(1f)
         )
         StatTile(
-            icon = "💬", value = if (unreadChat > 0) "$unreadChat" else "·",
+            icon = "💬", value = "$totalChat",
             label = stringResource(Res.string.detail_tab_chat),
             gradient = gradB, onClick = { onTabClick(DetailTab.CHAT) },
             modifier = Modifier.weight(1f)
@@ -660,52 +651,6 @@ private fun DetailTabBar(
             }
         }
     }
-}
-
-// ── Quick RSVP bar (non-owner, always visible under hero) ────────────────────
-
-@Composable
-private fun QuickRsvpBar(
-    status: InvitationStatus?,
-    onRsvp: (InvitationStatus) -> Unit,
-) {
-    val gradA = MaterialTheme.appColors.gradA
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text  = "Tu viens ?",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
-        )
-        listOf(
-            InvitationStatus.ACCEPTED to "✅",
-            InvitationStatus.MAYBE    to "🤔",
-            InvitationStatus.DECLINED to "❌",
-        ).forEach { (s, emoji) ->
-            val isSelected = status == s
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(AppShapes.ActionIcon)
-                    .then(
-                        if (isSelected) Modifier.background(brush = gradA)
-                        else Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
-                    .clickable { onRsvp(s) },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(emoji, fontSize = 16.sp)
-            }
-        }
-    }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }
 
 // ── RSVP banner (non-owner) ───────────────────────────────────────────────────

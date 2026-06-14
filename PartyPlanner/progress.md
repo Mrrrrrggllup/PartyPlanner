@@ -130,7 +130,6 @@ _Dernière mise à jour : 2026-06-14_
 - Padding bas du contenu à 104dp pour ne pas déborder sous la tab bar
 - Pill "👥 X confirmés" dans le hero (visible par tous)
 - Bouton ✏️ en haut à droite du hero pour l'organisateur → navigue vers EditEvent
-- `QuickRsvpBar` sous le hero pour les invités non-owner (3 boutons RSVP inline)
 - Pull-to-refresh (`PullToRefreshBox`) : recharge invitations + items + covoits en parallèle
 - Reconnexion WS automatique avec backoff exponentiel (2s → 4s → … → 30s max)
 - Badge sur les onglets : messages non lus, items non remplis, invitations en attente (owner), places covoit dispo
@@ -158,13 +157,24 @@ _Dernière mise à jour : 2026-06-14_
 ### Tuiles de navigation ✅
 - `StatsRow` remplacé par 4 tuiles cliquables (👥 Confirmés, 🛒 Courses, 💬 Chat, 🚗 Covoit)
 - Chaque tuile navigue directement vers son onglet (ripple natif via `OutlinedCard(onClick)`)
-- Chat affiche le nombre de messages non lus (ou `·` si 0)
+- Chaque tuile affiche un total informatif (confirmés, courses, messages, offres covoit)
 
 ### Deep link invitations ✅
 - Lien partagé : `http://[serveur]/i/{token}` au lieu de `partyplanner://invite/{token}` (non cliquable)
 - Backend : route publique `GET /i/{token}` → page HTML avec redirect JS vers `partyplanner://invite/{token}`
 - Si l'app est installée : ouvre directement l'app via le deep link existant
 - Si l'app n'est pas installée : bouton "Ouvrir dans PartyPlanner" sur la page web
+
+### Corrections diverses (2026-06-14) ✅
+
+- Hero : hauteur conditionnelle (140dp / 164dp si "Organisé par …" affiché) pour éviter le chevauchement du bouton retour avec le titre
+- `StatsRow` sort du `LazyColumn` et reste affichée même sur l'onglet Chat (qui remplace le contenu scrollable par `ChatTabLayout`)
+- Tuile Chat de la `StatsRow` affiche le nombre total de messages (au lieu des non-lus)
+- Covoiturage : nouveau système de suivi "non lu" identique à Courses
+  - Backend : `createdAt` sur `CarpoolOffers`, table `EventCarpoolViews`, `newCarpoolCount` dans `CarpoolOffersResponse`, route `POST /events/{id}/carpool/seen`
+  - Shared : modèle `EventCarpool(offers, newCarpoolCount)`, `MarkCarpoolSeenUseCase`
+  - UI : badge bas Covoit = `newCarpoolCount` (reset via `onCarpoolRead()` à l'ouverture de l'onglet)
+- Suppression de la `QuickRsvpBar` ("Tu viens ?" + ✅🤔❌) sous le hero, redondante avec la `RsvpBanner` de l'onglet Invités
 
 ---
 

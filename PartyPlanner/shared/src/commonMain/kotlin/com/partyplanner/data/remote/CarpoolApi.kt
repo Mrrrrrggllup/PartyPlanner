@@ -2,6 +2,7 @@ package com.partyplanner.data.remote
 
 import com.partyplanner.data.local.SessionStorage
 import com.partyplanner.data.remote.dto.CarpoolOfferResponse
+import com.partyplanner.data.remote.dto.CarpoolOffersResponse
 import com.partyplanner.data.remote.dto.CreateCarpoolOfferDto
 import com.partyplanner.data.remote.dto.JoinCarpoolDto
 import com.partyplanner.data.remote.dto.UpdateCarpoolOfferDto
@@ -19,10 +20,17 @@ class CarpoolApi(
     private suspend fun bearer() =
         "Bearer ${sessionStorage.getSession()?.token ?: error("Not authenticated")}"
 
-    suspend fun getOffers(eventId: Int): List<CarpoolOfferResponse> {
+    suspend fun getOffers(eventId: Int): CarpoolOffersResponse {
         val r = httpClient.get("$baseUrl/events/$eventId/carpool") { header(HttpHeaders.Authorization, bearer()) }
         if (!r.status.isSuccess()) throw Exception(errorMessage(r))
         return r.body()
+    }
+
+    suspend fun markCarpoolSeen(eventId: Int) {
+        val r = httpClient.post("$baseUrl/events/$eventId/carpool/seen") {
+            header(HttpHeaders.Authorization, bearer())
+        }
+        if (!r.status.isSuccess()) throw Exception(errorMessage(r))
     }
 
     suspend fun createOffer(eventId: Int, dto: CreateCarpoolOfferDto): CarpoolOfferResponse {

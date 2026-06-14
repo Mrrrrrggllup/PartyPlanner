@@ -4,6 +4,11 @@ import com.partyplanner.db.tables.*
 import com.partyplanner.dto.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -18,15 +23,48 @@ class CarpoolService {
         require(isOwner || isInvited) { "Access denied" }
     }
 
-    suspend fun getOffers(eventId: Int, userId: Int): List<CarpoolOfferResponse> =
+    suspend fun getOffers(eventId: Int, userId: Int): CarpoolOffersResponse =
         withContext(Dispatchers.IO) {
             transaction {
                 checkAccess(eventId, userId)
-                CarpoolOfferEntity.find { CarpoolOffers.eventId eq eventId }
+                val offers = CarpoolOfferEntity.find { CarpoolOffers.eventId eq eventId }
                     .sortedBy { it.id.value }
                     .map { it.toResponse() }
+
+                val event    = EventEntity.findById(eventId)!!
+                val lastSeen = EventCarpoolViewEntity.find {
+                    (EventCarpoolViews.eventId eq eventId) and (EventCarpoolViews.userId eq userId)
+                }.firstOrNull()?.lastSeenAt ?: event.createdAt
+
+                val newCarpoolCount = CarpoolOfferEntity.find {
+                    (CarpoolOffers.eventId eq eventId) and
+                        (CarpoolOffers.createdAt greater lastSeen) and
+                        (CarpoolOffers.driverId neq userId)
+                }.count()
+
+                CarpoolOffersResponse(offers, newCarpoolCount.toInt())
             }
         }
+
+    /** Marque le covoiturage comme vu par l'utilisateur (reset du badge de notif). */
+    suspend fun markCarpoolSeen(eventId: Int, userId: Int): Unit = withContext(Dispatchers.IO) {
+        transaction {
+            checkAccess(eventId, userId)
+            val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            val view = EventCarpoolViewEntity.find {
+                (EventCarpoolViews.eventId eq eventId) and (EventCarpoolViews.userId eq userId)
+            }.firstOrNull()
+            if (view != null) {
+                view.lastSeenAt = now
+            } else {
+                EventCarpoolViewEntity.new {
+                    event      = EventEntity.findById(eventId)!!
+                    user       = UserEntity.findById(userId)!!
+                    lastSeenAt = now
+                }
+            }
+        }
+    }
 
     suspend fun createOffer(eventId: Int, userId: Int, dto: CreateCarpoolOfferDto): CarpoolOfferResponse =
         withContext(Dispatchers.IO) {
@@ -42,6 +80,7 @@ class CarpoolService {
                     departurePoint = dto.departurePoint?.trim()
                     departureTime  = dto.departureTime
                     notes          = dto.notes?.trim()
+                    createdAt      = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             }
         }

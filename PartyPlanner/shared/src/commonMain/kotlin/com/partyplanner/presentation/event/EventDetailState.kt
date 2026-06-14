@@ -1,8 +1,8 @@
 package com.partyplanner.presentation.event
 
-import com.partyplanner.domain.model.CarpoolOffer
 import com.partyplanner.domain.model.ChatMessage
 import com.partyplanner.domain.model.Event
+import com.partyplanner.domain.model.EventCarpool
 import com.partyplanner.domain.model.EventItems
 import com.partyplanner.domain.model.Invitation
 import com.partyplanner.domain.model.InvitationStatus
@@ -23,7 +23,7 @@ sealed class EventDetailState {
         val items: EventItems = EventItems(emptyList(), emptyList()),
         val categories: List<ItemCategory> = emptyList(),
         val currentUserId: Int = 0,
-        val carpoolOffers: List<CarpoolOffer> = emptyList(),
+        val carpoolOffers: EventCarpool = EventCarpool(emptyList()),
         val chatMessages: List<ChatMessage> = emptyList(),
         val currentUserInvitationStatus: InvitationStatus? = null,
         val inviteEmailResult: InviteEmailResult? = null,

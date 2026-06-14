@@ -15,6 +15,7 @@ object CarpoolOffers : IntIdTable("carpool_offers") {
     val departurePoint = varchar("departure_point", 300).nullable()
     val departureTime  = datetime("departure_time").nullable()
     val notes          = text("notes").nullable()
+    val createdAt      = datetime("created_at").nullable()
 }
 
 class CarpoolOfferEntity(id: EntityID<Int>) : IntEntity(id) {
@@ -26,6 +27,7 @@ class CarpoolOfferEntity(id: EntityID<Int>) : IntEntity(id) {
     var departurePoint by CarpoolOffers.departurePoint
     var departureTime  by CarpoolOffers.departureTime
     var notes          by CarpoolOffers.notes
+    var createdAt      by CarpoolOffers.createdAt
 }
 
 object CarpoolPassengers : IntIdTable("carpool_passengers") {
@@ -44,4 +46,19 @@ class CarpoolPassengerEntity(id: EntityID<Int>) : IntEntity(id) {
     var passenger   by UserEntity         referencedOn CarpoolPassengers.passengerId
     var status      by CarpoolPassengers.status
     var pickupPoint by CarpoolPassengers.pickupPoint
+}
+
+/** Suivi de la dernière consultation de l'onglet Covoit par utilisateur, pour calculer les notifs de nouveautés. */
+object EventCarpoolViews : IntIdTable("event_carpool_views") {
+    val eventId    = reference("event_id", Events)
+    val userId     = reference("user_id", Users)
+    val lastSeenAt = datetime("last_seen_at")
+    init { uniqueIndex(eventId, userId) }
+}
+
+class EventCarpoolViewEntity(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<EventCarpoolViewEntity>(EventCarpoolViews)
+    var event      by EventEntity referencedOn EventCarpoolViews.eventId
+    var user       by UserEntity  referencedOn EventCarpoolViews.userId
+    var lastSeenAt by EventCarpoolViews.lastSeenAt
 }

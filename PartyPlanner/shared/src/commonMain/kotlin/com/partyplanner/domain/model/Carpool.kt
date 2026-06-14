@@ -20,3 +20,8 @@ data class CarpoolOffer(
     val notes: String?,
     val passengers: List<CarpoolPassenger>,
 )
+
+data class EventCarpool(
+    val offers: List<CarpoolOffer>,
+    val newCarpoolCount: Int = 0,
+)

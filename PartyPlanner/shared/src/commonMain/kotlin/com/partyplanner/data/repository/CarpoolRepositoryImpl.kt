@@ -7,12 +7,21 @@ import com.partyplanner.data.remote.dto.CreateCarpoolOfferDto
 import com.partyplanner.data.remote.dto.UpdateCarpoolOfferDto
 import com.partyplanner.domain.model.CarpoolOffer
 import com.partyplanner.domain.model.CarpoolPassenger
+import com.partyplanner.domain.model.EventCarpool
 import com.partyplanner.domain.repository.CarpoolRepository
 
 class CarpoolRepositoryImpl(private val api: CarpoolApi) : CarpoolRepository {
 
-    override suspend fun getOffers(eventId: Int): Result<List<CarpoolOffer>> = runCatching {
-        api.getOffers(eventId).map { it.toDomain() }
+    override suspend fun getOffers(eventId: Int): Result<EventCarpool> = runCatching {
+        val response = api.getOffers(eventId)
+        EventCarpool(
+            offers          = response.offers.map { it.toDomain() },
+            newCarpoolCount = response.newCarpoolCount,
+        )
+    }
+
+    override suspend fun markCarpoolSeen(eventId: Int): Result<Unit> = runCatching {
+        api.markCarpoolSeen(eventId)
     }
 
     override suspend fun createOffer(eventId: Int, seats: Int, departurePoint: String?, notes: String?): Result<CarpoolOffer> = runCatching {

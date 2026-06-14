@@ -18,6 +18,7 @@ interface EventDetailComponent {
     fun onDeleteCarpoolOffer(offerId: Int)
     fun onJoinCarpool(offerId: Int, pickupPoint: String?)
     fun onLeaveCarpool(offerId: Int)
+    fun onCarpoolRead()
     fun onSendMessage(content: String)
     fun onInviteByEmail(email: String)
     fun onInviteByUserId(userId: Int)

@@ -17,6 +17,7 @@ import com.partyplanner.domain.usecase.carpool.DeleteCarpoolOfferUseCase
 import com.partyplanner.domain.usecase.carpool.GetCarpoolOffersUseCase
 import com.partyplanner.domain.usecase.carpool.JoinCarpoolUseCase
 import com.partyplanner.domain.usecase.carpool.LeaveCarpoolUseCase
+import com.partyplanner.domain.usecase.carpool.MarkCarpoolSeenUseCase
 import com.partyplanner.domain.usecase.carpool.UpdateCarpoolOfferUseCase
 import com.partyplanner.domain.usecase.item.AddItemBroughtUseCase
 import com.partyplanner.domain.usecase.item.AddItemRequestUseCase
@@ -68,6 +69,7 @@ class DefaultEventDetailComponent(
     private val deleteCarpoolOfferUseCase: DeleteCarpoolOfferUseCase by inject()
     private val joinCarpoolUseCase: JoinCarpoolUseCase by inject()
     private val leaveCarpoolUseCase: LeaveCarpoolUseCase by inject()
+    private val markCarpoolSeenUseCase: MarkCarpoolSeenUseCase by inject()
     private val chatRepository: ChatRepository by inject()
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob()).also {
@@ -168,8 +170,8 @@ class DefaultEventDetailComponent(
 
     private fun loadCarpoolOffers() {
         scope.launch {
-            getCarpoolOffersUseCase(eventId).onSuccess { offers ->
-                updateSuccess { copy(carpoolOffers = offers) }
+            getCarpoolOffersUseCase(eventId).onSuccess { carpool ->
+                updateSuccess { copy(carpoolOffers = carpool) }
             }
         }
     }
@@ -237,7 +239,7 @@ class DefaultEventDetailComponent(
     override fun onCreateCarpoolOffer(seats: Int, departurePoint: String?, notes: String?) {
         scope.launch {
             createCarpoolOfferUseCase(eventId, seats, departurePoint, notes).onSuccess { offer ->
-                updateSuccess { copy(carpoolOffers = carpoolOffers + offer) }
+                updateSuccess { copy(carpoolOffers = carpoolOffers.copy(offers = carpoolOffers.offers + offer)) }
             }
         }
     }
@@ -245,7 +247,7 @@ class DefaultEventDetailComponent(
     override fun onUpdateCarpoolOffer(offerId: Int, seats: Int, departurePoint: String?, notes: String?) {
         scope.launch {
             updateCarpoolOfferUseCase(eventId, offerId, seats, departurePoint, notes).onSuccess { updated ->
-                updateSuccess { copy(carpoolOffers = carpoolOffers.map { if (it.id == offerId) updated else it }) }
+                updateSuccess { copy(carpoolOffers = carpoolOffers.copy(offers = carpoolOffers.offers.map { if (it.id == offerId) updated else it })) }
             }
         }
     }
@@ -253,7 +255,7 @@ class DefaultEventDetailComponent(
     override fun onDeleteCarpoolOffer(offerId: Int) {
         scope.launch {
             deleteCarpoolOfferUseCase(eventId, offerId).onSuccess {
-                updateSuccess { copy(carpoolOffers = carpoolOffers.filter { it.id != offerId }) }
+                updateSuccess { copy(carpoolOffers = carpoolOffers.copy(offers = carpoolOffers.offers.filter { it.id != offerId })) }
             }
         }
     }
@@ -261,9 +263,14 @@ class DefaultEventDetailComponent(
     override fun onJoinCarpool(offerId: Int, pickupPoint: String?) {
         scope.launch {
             joinCarpoolUseCase(eventId, offerId, pickupPoint).onSuccess { updated ->
-                updateSuccess { copy(carpoolOffers = carpoolOffers.map { if (it.id == offerId) updated else it }) }
+                updateSuccess { copy(carpoolOffers = carpoolOffers.copy(offers = carpoolOffers.offers.map { if (it.id == offerId) updated else it })) }
             }
         }
+    }
+
+    override fun onCarpoolRead() {
+        updateSuccess { copy(carpoolOffers = carpoolOffers.copy(newCarpoolCount = 0)) }
+        scope.launch { markCarpoolSeenUseCase(eventId) }
     }
 
     override fun onSendMessage(content: String) {
@@ -339,7 +346,7 @@ class DefaultEventDetailComponent(
     override fun onLeaveCarpool(offerId: Int) {
         scope.launch {
             leaveCarpoolUseCase(eventId, offerId).onSuccess { updated ->
-                updateSuccess { copy(carpoolOffers = carpoolOffers.map { if (it.id == offerId) updated else it }) }
+                updateSuccess { copy(carpoolOffers = carpoolOffers.copy(offers = carpoolOffers.offers.map { if (it.id == offerId) updated else it })) }
             }
         }
     }

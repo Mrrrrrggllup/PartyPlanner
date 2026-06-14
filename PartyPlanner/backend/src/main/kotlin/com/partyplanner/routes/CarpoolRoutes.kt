@@ -30,6 +30,13 @@ fun Route.carpoolRoutes(carpoolService: CarpoolService) {
                     .onFailure { call.respond(HttpStatusCode.BadRequest, mapOf("error" to it.message)) }
             }
 
+            post("/seen") {
+                val eventId = call.parameters["id"]!!.toInt()
+                runCatching { carpoolService.markCarpoolSeen(eventId, call.carpoolUserId()) }
+                    .onSuccess { call.respond(HttpStatusCode.NoContent) }
+                    .onFailure { call.respond(HttpStatusCode.Forbidden, mapOf("error" to it.message)) }
+            }
+
             route("/{offerId}") {
                 put {
                     val eventId = call.parameters["id"]!!.toInt()

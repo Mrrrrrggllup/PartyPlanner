@@ -24,6 +24,7 @@ import com.partyplanner.domain.usecase.carpool.DeleteCarpoolOfferUseCase
 import com.partyplanner.domain.usecase.carpool.GetCarpoolOffersUseCase
 import com.partyplanner.domain.usecase.carpool.JoinCarpoolUseCase
 import com.partyplanner.domain.usecase.carpool.LeaveCarpoolUseCase
+import com.partyplanner.domain.usecase.carpool.MarkCarpoolSeenUseCase
 import com.partyplanner.domain.usecase.carpool.UpdateCarpoolOfferUseCase
 import com.partyplanner.domain.usecase.auth.ForgotPasswordUseCase
 import com.partyplanner.domain.usecase.auth.LoginUseCase
@@ -138,4 +139,5 @@ val sharedModule = module {
     factory { DeleteCarpoolOfferUseCase(get()) }
     factory { JoinCarpoolUseCase(get()) }
     factory { LeaveCarpoolUseCase(get()) }
+    factory { MarkCarpoolSeenUseCase(get()) }
 }

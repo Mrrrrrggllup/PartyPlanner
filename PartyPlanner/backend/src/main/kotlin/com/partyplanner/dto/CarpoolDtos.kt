@@ -43,3 +43,9 @@ data class CarpoolOfferResponse(
     val notes: String?,
     val passengers: List<CarpoolPassengerResponse>,
 )
+
+@Serializable
+data class CarpoolOffersResponse(
+    val offers: List<CarpoolOfferResponse>,
+    val newCarpoolCount: Int = 0,
+)
