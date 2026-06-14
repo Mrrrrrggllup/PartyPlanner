@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import com.partyplanner.presentation.event.EventDetailState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
 import kotlinx.coroutines.launch
+import kotlinx.datetime.toInstant
 import org.jetbrains.compose.resources.stringResource
 
 private enum class DetailTab(val icon: String) {
@@ -286,9 +288,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                 else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
                                 selectedTab = tab
                             },
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .navigationBarsPadding(),
+                            modifier = Modifier.navigationBarsPadding(),
                             badgeCounts = mapOf(
                                 DetailTab.CHAT   to s.unreadChatCount,
                                 DetailTab.ITEMS  to s.items.requests.count { !it.isFulfilled },

@@ -260,7 +260,7 @@ private fun CreateEventHeader(onBack: () -> Unit) {
 }
 
 @Composable
-private fun DateFieldButton(label: String, value: String?, onClick: () -> Unit) {
+internal fun DateFieldButton(label: String, value: String?, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -286,7 +286,7 @@ private fun DateFieldButton(label: String, value: String?, onClick: () -> Unit) 
 }
 
 @Composable
-private fun CreateTextField(
+internal fun CreateTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
@@ -311,7 +311,7 @@ private fun CreateTextField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimePickerDialog(
+internal fun TimePickerDialog(
     state: TimePickerState,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -332,7 +332,7 @@ private fun TimePickerDialog(
 
 @Suppress("DEPRECATION")
 @OptIn(ExperimentalMaterial3Api::class)
-private fun millisToDateTime(millis: Long?, timeState: TimePickerState): LocalDateTime? {
+internal fun millisToDateTime(millis: Long?, timeState: TimePickerState): LocalDateTime? {
     millis ?: return null
     val localDate = Instant.fromEpochMilliseconds(millis)
         .toLocalDateTime(TimeZone.UTC)
@@ -343,7 +343,7 @@ private fun millisToDateTime(millis: Long?, timeState: TimePickerState): LocalDa
 }
 
 @Suppress("DEPRECATION")
-private fun LocalDateTime.formatDisplay(): String {
+internal fun LocalDateTime.formatDisplay(): String {
     val d   = dayOfMonth.toString().padStart(2, '0')
     val m   = monthNumber.toString().padStart(2, '0')
     val h   = hour.toString().padStart(2, '0')
