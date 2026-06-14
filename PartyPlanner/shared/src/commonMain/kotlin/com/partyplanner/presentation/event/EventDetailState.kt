@@ -28,6 +28,9 @@ sealed class EventDetailState {
         val currentUserInvitationStatus: InvitationStatus? = null,
         val inviteEmailResult: InviteEmailResult? = null,
         val inviteSuggestions: List<UserSuggestion> = emptyList(),
+        val deleteError: String? = null,
+        val isRefreshing: Boolean = false,
+        val unreadChatCount: Int = 0,
     ) : EventDetailState()
     data class Error(val message: String) : EventDetailState()
 }

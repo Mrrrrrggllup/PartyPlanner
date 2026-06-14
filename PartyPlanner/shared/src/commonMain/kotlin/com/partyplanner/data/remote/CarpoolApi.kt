@@ -4,6 +4,7 @@ import com.partyplanner.data.local.SessionStorage
 import com.partyplanner.data.remote.dto.CarpoolOfferResponse
 import com.partyplanner.data.remote.dto.CreateCarpoolOfferDto
 import com.partyplanner.data.remote.dto.JoinCarpoolDto
+import com.partyplanner.data.remote.dto.UpdateCarpoolOfferDto
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -26,6 +27,16 @@ class CarpoolApi(
 
     suspend fun createOffer(eventId: Int, dto: CreateCarpoolOfferDto): CarpoolOfferResponse {
         val r = httpClient.post("$baseUrl/events/$eventId/carpool") {
+            header(HttpHeaders.Authorization, bearer())
+            contentType(ContentType.Application.Json)
+            setBody(dto)
+        }
+        if (!r.status.isSuccess()) throw Exception(errorMessage(r))
+        return r.body()
+    }
+
+    suspend fun updateOffer(eventId: Int, offerId: Int, dto: UpdateCarpoolOfferDto): CarpoolOfferResponse {
+        val r = httpClient.put("$baseUrl/events/$eventId/carpool/$offerId") {
             header(HttpHeaders.Authorization, bearer())
             contentType(ContentType.Application.Json)
             setBody(dto)

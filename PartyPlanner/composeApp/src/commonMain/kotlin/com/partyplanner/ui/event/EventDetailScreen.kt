@@ -65,6 +65,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
     var showAddItemBroughtSheet by remember { mutableStateOf(false) }
     var showCreateCarpoolSheet by remember { mutableStateOf(false) }
     var joinCarpoolOfferId by remember { mutableStateOf<Int?>(null) }
+    var editCarpoolOffer by remember { mutableStateOf<CarpoolOffer?>(null) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (val s = state) {
@@ -80,12 +81,29 @@ fun EventDetailScreen(component: EventDetailComponent) {
             is EventDetailState.Success -> {
                 Column(modifier = Modifier.fillMaxSize()) {
                     DetailHero(
-                        title    = s.event.title,
-                        subtitle = buildSubtitle(s.event),
-                        onBack   = component::onBack,
+                        title        = s.event.title,
+                        subtitle     = buildSubtitle(s.event),
+                        onBack       = component::onBack,
+                        onEdit       = if (s.isOwner) component::onEdit else null,
+                        guestSummary = run {
+                            val confirmed = s.invitations.count { it.status == InvitationStatus.ACCEPTED }
+                            val total     = s.invitations.size
+                            if (total > 0) "👥 $confirmed/$total présents" else null
+                        },
                     )
-                    Box(modifier = Modifier.weight(1f)) {
+                    if (!s.isOwner) {
+                        QuickRsvpBar(
+                            status  = s.currentUserInvitationStatus,
+                            onRsvp  = component::onRsvp,
+                        )
+                    }
+                    PullToRefreshBox(
+                        isRefreshing = s.isRefreshing,
+                        onRefresh    = component::onRefresh,
+                        modifier     = Modifier.weight(1f),
+                    ) {
                         if (selectedTab == DetailTab.CHAT) {
+                            LaunchedEffect(Unit) { component.onChatRead() }
                             ChatTabLayout(
                                 messages      = s.chatMessages,
                                 currentUserId = s.currentUserId,
@@ -95,14 +113,16 @@ fun EventDetailScreen(component: EventDetailComponent) {
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 80.dp)
+                                contentPadding = PaddingValues(bottom = 104.dp)
                             ) {
                                 item {
                                     StatsRow(
-                                        total     = s.invitations.size,
-                                        confirmed = s.invitations.count { it.status == InvitationStatus.ACCEPTED },
-                                        covoits   = s.carpoolOffers.size,
-                                        modifier  = Modifier.padding(16.dp)
+                                        confirmed  = s.invitations.count { it.status == InvitationStatus.ACCEPTED },
+                                        totalItems = s.items.requests.size + s.items.brought.size,
+                                        unreadChat = s.unreadChatCount,
+                                        covoits    = s.carpoolOffers.size,
+                                        onTabClick = { selectedTab = it },
+                                        modifier   = Modifier.padding(16.dp)
                                     )
                                 }
                                 item { Spacer(Modifier.height(4.dp)) }
@@ -251,6 +271,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                             onJoin        = { offerId -> joinCarpoolOfferId = offerId },
                                             onLeave       = component::onLeaveCarpool,
                                             onDelete      = component::onDeleteCarpoolOffer,
+                                            onEdit        = { offer -> editCarpoolOffer = offer },
                                         )
                                     }
                                     else -> {}
@@ -260,10 +281,20 @@ fun EventDetailScreen(component: EventDetailComponent) {
 
                         DetailTabBar(
                             selected = selectedTab,
-                            onSelect = { selectedTab = it },
+                            onSelect = { tab ->
+                                if (tab == DetailTab.CHAT) component.onChatRead()
+                                else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
+                                selectedTab = tab
+                            },
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .navigationBarsPadding()
+                                .navigationBarsPadding(),
+                            badgeCounts = mapOf(
+                                DetailTab.CHAT   to s.unreadChatCount,
+                                DetailTab.ITEMS  to s.items.requests.count { !it.isFulfilled },
+                                DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
+                                DetailTab.COVOIT to s.carpoolOffers.count { it.seatsRemaining > 0 },
+                            ),
                         )
                     }
                 }
@@ -319,6 +350,17 @@ fun EventDetailScreen(component: EventDetailComponent) {
         )
     }
 
+    editCarpoolOffer?.let { offer ->
+        EditCarpoolSheet(
+            offer     = offer,
+            onConfirm = { seats, departurePoint, notes ->
+                component.onUpdateCarpoolOffer(offer.id, seats, departurePoint, notes)
+                editCarpoolOffer = null
+            },
+            onDismiss = { editCarpoolOffer = null }
+        )
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -336,19 +378,39 @@ fun EventDetailScreen(component: EventDetailComponent) {
             }
         )
     }
+
+    val deleteError = (state as? EventDetailState.Success)?.deleteError
+    if (deleteError != null) {
+        AlertDialog(
+            onDismissRequest = { component.onDismissDeleteError() },
+            title = { Text("Erreur") },
+            text  = { Text(deleteError) },
+            confirmButton = {
+                TextButton(onClick = { component.onDismissDeleteError() }) {
+                    Text(stringResource(Res.string.common_ok))
+                }
+            }
+        )
+    }
 }
 
 // ── Hero ───────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun DetailHero(title: String, subtitle: String, onBack: () -> Unit) {
+private fun DetailHero(
+    title: String,
+    subtitle: String,
+    onBack: () -> Unit,
+    guestSummary: String? = null,
+    onEdit: (() -> Unit)? = null,
+) {
     val gradA = MaterialTheme.appColors.gradA
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(brush = gradA)
             .statusBarsPadding()
-            .height(200.dp)
+            .height(140.dp)
     ) {
         Text(
             text = "🎊",
@@ -363,7 +425,7 @@ private fun DetailHero(title: String, subtitle: String, onBack: () -> Unit) {
             fontSize = 60.sp,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 20.dp, bottom = 44.dp)
+                .padding(start = 20.dp, bottom = 20.dp)
                 .alpha(0.12f)
         )
         Box(
@@ -380,10 +442,25 @@ private fun DetailHero(title: String, subtitle: String, onBack: () -> Unit) {
                 Text("←", color = Color.White, style = MaterialTheme.typography.titleLarge)
             }
         }
+        if (onEdit != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .size(36.dp)
+                    .clip(AppShapes.ActionIcon)
+                    .background(Color.White.copy(alpha = 0.25f))
+                    .border(1.dp, Color.White.copy(alpha = 0.4f), AppShapes.ActionIcon)
+                    .clickable { onEdit() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("✏️", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 24.dp, end = 24.dp, bottom = 20.dp)
+                .padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
         ) {
             Text(
                 text = title,
@@ -391,37 +468,88 @@ private fun DetailHero(title: String, subtitle: String, onBack: () -> Unit) {
                 color = Color.White
             )
             if (subtitle.isNotEmpty()) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.85f)
                 )
             }
+            if (guestSummary != null) {
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(AppShapes.Pill)
+                        .background(Color.White.copy(alpha = 0.20f))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = guestSummary,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White
+                    )
+                }
+            }
         }
     }
 }
 
-// ── Stats row ─────────────────────────────────────────────────────────────────
+// ── Stats row (raccourcis cliquables vers les onglets) ────────────────────────
 
 @Composable
-private fun StatsRow(total: Int, confirmed: Int, covoits: Int, modifier: Modifier = Modifier) {
+private fun StatsRow(
+    confirmed: Int,
+    totalItems: Int,
+    unreadChat: Int,
+    covoits: Int,
+    onTabClick: (DetailTab) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val gradA = MaterialTheme.appColors.gradA
     val gradB = MaterialTheme.appColors.gradB
     val gradC = MaterialTheme.appColors.gradC
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        StatTile(value = "$total",     label = stringResource(Res.string.detail_stat_guests),    gradient = gradA, modifier = Modifier.weight(1f))
-        StatTile(value = "$confirmed", label = stringResource(Res.string.detail_stat_confirmed), gradient = gradC, modifier = Modifier.weight(1f))
-        StatTile(value = "$covoits",   label = stringResource(Res.string.detail_stat_rides),     gradient = gradB, modifier = Modifier.weight(1f))
+        StatTile(
+            icon = "👥", value = "$confirmed",
+            label = stringResource(Res.string.detail_stat_confirmed),
+            gradient = gradA, onClick = { onTabClick(DetailTab.INVITES) },
+            modifier = Modifier.weight(1f)
+        )
+        StatTile(
+            icon = "🛒", value = "$totalItems",
+            label = stringResource(Res.string.detail_tab_items),
+            gradient = gradC, onClick = { onTabClick(DetailTab.ITEMS) },
+            modifier = Modifier.weight(1f)
+        )
+        StatTile(
+            icon = "💬", value = if (unreadChat > 0) "$unreadChat" else "·",
+            label = stringResource(Res.string.detail_tab_chat),
+            gradient = gradB, onClick = { onTabClick(DetailTab.CHAT) },
+            modifier = Modifier.weight(1f)
+        )
+        StatTile(
+            icon = "🚗", value = "$covoits",
+            label = stringResource(Res.string.detail_tab_carpool),
+            gradient = gradA, onClick = { onTabClick(DetailTab.COVOIT) },
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
 @Composable
-private fun StatTile(value: String, label: String, gradient: Brush, modifier: Modifier = Modifier) {
+private fun StatTile(
+    icon: String,
+    value: String,
+    label: String,
+    gradient: Brush,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     OutlinedCard(
+        onClick = onClick,
         modifier = modifier,
         shape = AppShapes.Card,
         border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline)
@@ -429,20 +557,22 @@ private fun StatTile(value: String, label: String, gradient: Brush, modifier: Mo
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 14.dp, horizontal = 12.dp),
+                .padding(vertical = 10.dp, horizontal = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(brush = gradient),
-                textAlign = TextAlign.Center
-            )
+            Text(text = icon, fontSize = 18.sp)
             Spacer(Modifier.height(2.dp))
             Text(
-                text = label.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = value,
+                style = MaterialTheme.typography.titleLarge.copy(brush = gradient),
                 textAlign = TextAlign.Center
+            )
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
         }
     }
@@ -455,6 +585,7 @@ private fun DetailTabBar(
     selected: DetailTab,
     onSelect: (DetailTab) -> Unit,
     modifier: Modifier = Modifier,
+    badgeCounts: Map<DetailTab, Int> = emptyMap(),
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -470,7 +601,8 @@ private fun DetailTabBar(
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 DetailTab.entries.forEach { tab ->
-                    val isActive = tab == selected
+                    val isActive  = tab == selected
+                    val badgeCount = badgeCounts[tab] ?: 0
                     Column(
                         modifier = Modifier
                             .clickable { onSelect(tab) }
@@ -478,17 +610,25 @@ private fun DetailTabBar(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(AppShapes.ActionIcon)
-                                .then(
-                                    if (isActive) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
-                                    else Modifier
-                                ),
-                            contentAlignment = Alignment.Center
+                        BadgedBox(
+                            badge = {
+                                if (badgeCount > 0) Badge {
+                                    Text(if (badgeCount > 9) "9+" else badgeCount.toString())
+                                }
+                            }
                         ) {
-                            Text(tab.icon, fontSize = 17.sp)
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(AppShapes.ActionIcon)
+                                    .then(
+                                        if (isActive) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                                        else Modifier
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(tab.icon, fontSize = 17.sp)
+                            }
                         }
                         Text(
                             text = tab.localizedLabel,
@@ -501,6 +641,52 @@ private fun DetailTabBar(
             }
         }
     }
+}
+
+// ── Quick RSVP bar (non-owner, always visible under hero) ────────────────────
+
+@Composable
+private fun QuickRsvpBar(
+    status: InvitationStatus?,
+    onRsvp: (InvitationStatus) -> Unit,
+) {
+    val gradA = MaterialTheme.appColors.gradA
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text  = "Tu viens ?",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        listOf(
+            InvitationStatus.ACCEPTED to "✅",
+            InvitationStatus.MAYBE    to "🤔",
+            InvitationStatus.DECLINED to "❌",
+        ).forEach { (s, emoji) ->
+            val isSelected = status == s
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(AppShapes.ActionIcon)
+                    .then(
+                        if (isSelected) Modifier.background(brush = gradA)
+                        else Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                    .clickable { onRsvp(s) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(emoji, fontSize = 16.sp)
+            }
+        }
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }
 
 // ── RSVP banner (non-owner) ───────────────────────────────────────────────────
@@ -717,7 +903,7 @@ private fun InviteButton(token: String, modifier: Modifier = Modifier) {
             .border(1.5.dp, MaterialTheme.colorScheme.primary, AppShapes.TextField)
             .clickable {
                 @Suppress("DEPRECATION")
-                clipboardManager.setText(AnnotatedString("partyplanner://invite/$token"))
+                clipboardManager.setText(AnnotatedString("${com.partyplanner.util.BASE_URL}/i/$token"))
                 copied = true
             },
         contentAlignment = Alignment.Center
@@ -1101,6 +1287,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.CarpoolTabContent(
     onJoin: (Int) -> Unit,
     onLeave: (Int) -> Unit,
     onDelete: (Int) -> Unit,
+    onEdit: (CarpoolOffer) -> Unit,
 ) {
     if (offers.isEmpty()) {
         item {
@@ -1123,15 +1310,16 @@ fun androidx.compose.foundation.lazy.LazyListScope.CarpoolTabContent(
         val canJoin       = !isDriver && !isPassenger && offer.seatsRemaining > 0
         val canDelete     = isDriver || isOwner
         CarpoolOfferCard(
-            offer      = offer,
-            isDriver   = isDriver,
+            offer       = offer,
+            isDriver    = isDriver,
             isPassenger = isPassenger,
-            canJoin    = canJoin,
-            canDelete  = canDelete,
-            onJoin     = { onJoin(offer.id) },
-            onLeave    = { onLeave(offer.id) },
-            onDelete   = { onDelete(offer.id) },
-            modifier   = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            canJoin     = canJoin,
+            canDelete   = canDelete,
+            onJoin      = { onJoin(offer.id) },
+            onLeave     = { onLeave(offer.id) },
+            onDelete    = { onDelete(offer.id) },
+            onEdit      = if (isDriver) { { onEdit(offer) } } else null,
+            modifier    = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
     }
 }
@@ -1146,6 +1334,7 @@ private fun CarpoolOfferCard(
     onJoin: () -> Unit,
     onLeave: () -> Unit,
     onDelete: () -> Unit,
+    onEdit: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val meLabel = stringResource(Res.string.detail_carpool_me)
@@ -1222,6 +1411,19 @@ private fun CarpoolOfferCard(
         }
 
         when {
+            isDriver && onEdit != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(38.dp)
+                        .clip(AppShapes.TextField)
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .clickable(onClick = onEdit),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("✏️ Modifier mon offre", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelMedium)
+                }
+            }
             isDriver -> Unit
             isPassenger -> {
                 Box(
@@ -1330,6 +1532,77 @@ private fun CreateCarpoolSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Text(stringResource(Res.string.detail_carpool_create), color = Color.White, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditCarpoolSheet(
+    offer: CarpoolOffer,
+    onConfirm: (Int, String?, String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var seats by remember { mutableStateOf(offer.seatsAvailable) }
+    var departurePoint by remember { mutableStateOf(offer.departurePoint ?: "") }
+    var notes by remember { mutableStateOf(offer.notes ?: "") }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text("Modifier mon offre", style = MaterialTheme.typography.titleMedium)
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(Res.string.detail_carpool_seats), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                TextButton(onClick = { if (seats > 1) seats-- }) {
+                    Text("−", style = MaterialTheme.typography.titleLarge)
+                }
+                Text("$seats", style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = { seats++ }) {
+                    Text("+", style = MaterialTheme.typography.titleLarge)
+                }
+            }
+
+            OutlinedTextField(
+                value         = departurePoint,
+                onValueChange = { departurePoint = it },
+                label         = { Text(stringResource(Res.string.detail_carpool_departure)) },
+                modifier      = Modifier.fillMaxWidth(),
+                shape         = AppShapes.TextField,
+                singleLine    = true,
+            )
+
+            OutlinedTextField(
+                value         = notes,
+                onValueChange = { notes = it },
+                label         = { Text(stringResource(Res.string.detail_carpool_notes)) },
+                modifier      = Modifier.fillMaxWidth(),
+                shape         = AppShapes.TextField,
+                singleLine    = true,
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clip(AppShapes.TextField)
+                    .background(brush = MaterialTheme.appColors.gradA)
+                    .clickable {
+                        onConfirm(
+                            seats,
+                            departurePoint.trim().takeIf { it.isNotBlank() },
+                            notes.trim().takeIf { it.isNotBlank() }
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Enregistrer", color = Color.White, style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -1511,8 +1784,10 @@ private fun ChatBubble(message: ChatMessage, isMine: Boolean) {
 
 @Suppress("DEPRECATION")
 private fun formatChatTime(dt: kotlinx.datetime.LocalDateTime): String {
-    val h = dt.hour.toString().padStart(2, '0')
-    val m = dt.minute.toString().padStart(2, '0')
+    val local = dt.toInstant(kotlinx.datetime.TimeZone.UTC)
+        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+    val h = local.hour.toString().padStart(2, '0')
+    val m = local.minute.toString().padStart(2, '0')
     return "$h:$m"
 }
 

@@ -11,9 +11,11 @@ import com.partyplanner.domain.usecase.event.CreateEventUseCase
 import com.partyplanner.domain.usecase.event.DeleteEventUseCase
 import com.partyplanner.domain.usecase.event.GetEventUseCase
 import com.partyplanner.domain.usecase.event.GetEventsUseCase
+import com.partyplanner.domain.usecase.event.UpdateEventUseCase
 import com.partyplanner.domain.usecase.invitation.GetInviteInfoUseCase
 import com.partyplanner.domain.usecase.invitation.RsvpToInvitationUseCase
 import com.partyplanner.presentation.event.DefaultCreateEventComponent
+import com.partyplanner.presentation.event.DefaultEditEventComponent
 import com.partyplanner.presentation.event.DefaultEventDetailComponent
 import com.partyplanner.presentation.home.DefaultHomeComponent
 import com.partyplanner.presentation.invitation.DefaultInvitationComponent
@@ -31,6 +33,7 @@ class DefaultMainComponent(
     private val getEventsUseCase: GetEventsUseCase by inject()
     private val getEventUseCase: GetEventUseCase by inject()
     private val createEventUseCase: CreateEventUseCase by inject()
+    private val updateEventUseCase: UpdateEventUseCase by inject()
     private val deleteEventUseCase: DeleteEventUseCase by inject()
     private val getInviteInfoUseCase: GetInviteInfoUseCase by inject()
     private val rsvpToInvitationUseCase: RsvpToInvitationUseCase by inject()
@@ -67,6 +70,17 @@ class DefaultMainComponent(
                     getEventUseCase    = getEventUseCase,
                     deleteEventUseCase = deleteEventUseCase,
                     onBack             = { navigation.pop() },
+                    onEdit             = { navigation.push(Config.EditEvent(config.eventId)) },
+                )
+            )
+            is Config.EditEvent -> MainComponent.Child.EditEventChild(
+                DefaultEditEventComponent(
+                    componentContext  = context,
+                    eventId           = config.eventId,
+                    getEventUseCase   = getEventUseCase,
+                    updateEventUseCase = updateEventUseCase,
+                    onBack            = { navigation.pop() },
+                    onSaved           = { navigation.pop() },
                 )
             )
             Config.CreateEvent -> MainComponent.Child.CreateEventChild(
@@ -100,6 +114,7 @@ class DefaultMainComponent(
     private sealed interface Config {
         @Serializable data object Home : Config
         @Serializable data class  EventDetail(val eventId: Int) : Config
+        @Serializable data class  EditEvent(val eventId: Int) : Config
         @Serializable data object CreateEvent : Config
         @Serializable data class  Invitation(val token: String) : Config
         @Serializable data object Profile : Config

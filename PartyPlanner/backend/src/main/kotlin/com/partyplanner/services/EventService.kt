@@ -9,6 +9,12 @@ import com.partyplanner.dto.UpdateEventRequest
 import com.partyplanner.db.tables.InvitationStatus
 import com.partyplanner.db.tables.InvitationEntity
 import com.partyplanner.db.tables.Invitations
+import com.partyplanner.db.tables.ChatMessages
+import com.partyplanner.db.tables.ItemRequests
+import com.partyplanner.db.tables.ItemsBrought
+import com.partyplanner.db.tables.CarpoolOffers
+import com.partyplanner.db.tables.CarpoolOfferEntity
+import com.partyplanner.db.tables.CarpoolPassengers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -16,6 +22,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 
@@ -88,6 +95,17 @@ class EventService {
         transaction {
             val event = EventEntity.findById(id) ?: error("Event not found")
             require(event.owner.id.value == userId) { "Access denied" }
+
+            val offerIds = CarpoolOfferEntity.find { CarpoolOffers.eventId eq id }.map { it.id }
+            if (offerIds.isNotEmpty()) {
+                CarpoolPassengers.deleteWhere { CarpoolPassengers.offerId inList offerIds }
+            }
+            CarpoolOffers.deleteWhere { CarpoolOffers.eventId eq id }
+            ChatMessages.deleteWhere { ChatMessages.eventId eq id }
+            ItemsBrought.deleteWhere { ItemsBrought.eventId eq id }
+            ItemRequests.deleteWhere { ItemRequests.eventId eq id }
+            Invitations.deleteWhere { Invitations.eventId eq id }
+
             event.delete()
         }
     }

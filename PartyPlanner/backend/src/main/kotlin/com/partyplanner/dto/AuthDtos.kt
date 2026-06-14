@@ -22,3 +22,9 @@ data class AuthResponse(
     val userId: Int,
     val displayName: String
 )
+
+@Serializable
+data class ForgotPasswordRequest(val email: String)
+
+@Serializable
+data class ResetPasswordRequest(val token: String, val newPassword: String)

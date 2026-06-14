@@ -72,16 +72,23 @@ class ItemService {
             }
         }
 
-    /** Toggle fulfilled. Any participant can volunteer or unvolunteer. */
+    /** Toggle fulfilled. Any participant can volunteer; only assignee or owner can un-volunteer. */
     suspend fun fulfillRequest(eventId: Int, requestId: Int, userId: Int): ItemRequestResponse =
         withContext(Dispatchers.IO) {
             transaction {
                 checkAccess(eventId, userId)
                 val req = ItemRequestEntity.findById(requestId) ?: error("Item not found")
                 require(req.event.id.value == eventId) { "Item not found" }
-                val nowFulfilled = !req.isFulfilled
-                req.isFulfilled = nowFulfilled
-                req.assignedTo  = if (nowFulfilled) UserEntity.findById(userId) else null
+                if (req.isFulfilled) {
+                    val isOwner    = req.event.owner.id.value == userId
+                    val isAssignee = req.assignedTo?.id?.value == userId
+                    require(isOwner || isAssignee) { "Seul la personne assignée ou l'organisateur peut retirer son engagement" }
+                    req.isFulfilled = false
+                    req.assignedTo  = null
+                } else {
+                    req.isFulfilled = true
+                    req.assignedTo  = UserEntity.findById(userId)
+                }
                 req.toResponse()
             }
         }

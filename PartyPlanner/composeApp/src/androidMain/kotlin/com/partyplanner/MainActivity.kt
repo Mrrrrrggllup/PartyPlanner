@@ -16,19 +16,23 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // Extract invite token from deep link partyplanner://invite/{token}
         val inviteToken = intent?.data?.let { uri ->
             if (uri.scheme == "partyplanner" && uri.host == "invite") uri.lastPathSegment
+            else null
+        }
+        val resetToken = intent?.data?.let { uri ->
+            if (uri.scheme == "partyplanner" && uri.host == "reset-password") uri.getQueryParameter("token")
             else null
         }
 
         val root = retainedComponent {
             DefaultRootComponent(
-                componentContext = it,
-                authRepository   = get<AuthRepository>(),
-                loginUseCase     = get<LoginUseCase>(),
-                registerUseCase  = get<RegisterUseCase>(),
+                componentContext   = it,
+                authRepository     = get<AuthRepository>(),
+                loginUseCase       = get<LoginUseCase>(),
+                registerUseCase    = get<RegisterUseCase>(),
                 initialInviteToken = inviteToken,
+                initialResetToken  = resetToken,
             )
         }
 

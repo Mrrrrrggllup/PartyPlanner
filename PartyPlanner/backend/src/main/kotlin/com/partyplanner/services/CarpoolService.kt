@@ -46,6 +46,20 @@ class CarpoolService {
             }
         }
 
+    suspend fun updateOffer(eventId: Int, offerId: Int, userId: Int, dto: UpdateCarpoolOfferDto): CarpoolOfferResponse =
+        withContext(Dispatchers.IO) {
+            transaction {
+                val offer = CarpoolOfferEntity.findById(offerId) ?: error("Offre introuvable")
+                require(offer.event.id.value == eventId) { "Offre introuvable" }
+                require(offer.driver.id.value == userId) { "Seul le conducteur peut modifier son offre" }
+                require(dto.seatsAvailable >= 1) { "Au moins 1 place requise" }
+                offer.seatsAvailable = dto.seatsAvailable
+                offer.departurePoint = dto.departurePoint?.trim()
+                offer.notes          = dto.notes?.trim()
+                offer.toResponse()
+            }
+        }
+
     suspend fun deleteOffer(eventId: Int, offerId: Int, userId: Int): Unit =
         withContext(Dispatchers.IO) {
             transaction {

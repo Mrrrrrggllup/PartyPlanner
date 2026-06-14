@@ -3,6 +3,8 @@ package com.partyplanner.presentation.root
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.partyplanner.presentation.auth.AuthComponent
+import com.partyplanner.presentation.auth.ForgotPasswordComponent
+import com.partyplanner.presentation.auth.ResetPasswordComponent
 import com.partyplanner.presentation.main.MainComponent
 
 interface RootComponent {
@@ -11,5 +13,7 @@ interface RootComponent {
     sealed class Child {
         class AuthChild(val component: AuthComponent) : Child()
         class MainChild(val component: MainComponent) : Child()
+        class ForgotPasswordChild(val component: ForgotPasswordComponent) : Child()
+        class ResetPasswordChild(val component: ResetPasswordComponent) : Child()
     }
 }

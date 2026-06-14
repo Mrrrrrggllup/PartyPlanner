@@ -17,7 +17,8 @@ class DefaultAuthComponent(
     componentContext: ComponentContext,
     private val loginUseCase: LoginUseCase,
     private val registerUseCase: RegisterUseCase,
-    private val onAuthSuccess: () -> Unit = {}
+    private val onAuthSuccess: () -> Unit = {},
+    private val onForgotPasswordNav: () -> Unit = {},
 ) : AuthComponent, ComponentContext by componentContext {
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob()).also {
@@ -52,4 +53,6 @@ class DefaultAuthComponent(
     override fun resetState() {
         _state.value = AuthState.Idle
     }
+
+    override fun onForgotPassword() = onForgotPasswordNav()
 }

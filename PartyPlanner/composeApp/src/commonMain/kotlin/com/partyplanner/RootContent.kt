@@ -6,6 +6,8 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.slide
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.partyplanner.presentation.root.RootComponent
 import com.partyplanner.ui.auth.AuthScreen
+import com.partyplanner.ui.auth.ForgotPasswordScreen
+import com.partyplanner.ui.auth.ResetPasswordScreen
 import com.partyplanner.ui.main.MainScreen
 
 @Composable
@@ -17,6 +19,8 @@ fun RootContent(component: RootComponent) {
         when (val child = it.instance) {
             is RootComponent.Child.AuthChild -> AuthScreen(child.component)
             is RootComponent.Child.MainChild -> MainScreen(child.component)
+            is RootComponent.Child.ForgotPasswordChild -> ForgotPasswordScreen(child.component)
+            is RootComponent.Child.ResetPasswordChild -> ResetPasswordScreen(child.component)
         }
     }
 }

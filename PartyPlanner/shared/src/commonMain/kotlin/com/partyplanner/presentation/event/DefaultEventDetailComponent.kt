@@ -17,6 +17,7 @@ import com.partyplanner.domain.usecase.carpool.DeleteCarpoolOfferUseCase
 import com.partyplanner.domain.usecase.carpool.GetCarpoolOffersUseCase
 import com.partyplanner.domain.usecase.carpool.JoinCarpoolUseCase
 import com.partyplanner.domain.usecase.carpool.LeaveCarpoolUseCase
+import com.partyplanner.domain.usecase.carpool.UpdateCarpoolOfferUseCase
 import com.partyplanner.domain.usecase.item.AddItemBroughtUseCase
 import com.partyplanner.domain.usecase.item.AddItemRequestUseCase
 import com.partyplanner.domain.usecase.item.DeleteItemBroughtUseCase
@@ -27,7 +28,9 @@ import com.partyplanner.domain.usecase.item.GetItemsUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,6 +44,7 @@ class DefaultEventDetailComponent(
     private val getEventUseCase: GetEventUseCase,
     private val deleteEventUseCase: DeleteEventUseCase,
     private val onBack: () -> Unit,
+    private val onEdit: () -> Unit = {},
 ) : EventDetailComponent, ComponentContext by componentContext, KoinComponent {
 
     private val sessionStorage: SessionStorage                         by inject()
@@ -58,6 +62,7 @@ class DefaultEventDetailComponent(
     private val deleteItemBroughtUseCase: DeleteItemBroughtUseCase by inject()
     private val getCarpoolOffersUseCase: GetCarpoolOffersUseCase by inject()
     private val createCarpoolOfferUseCase: CreateCarpoolOfferUseCase by inject()
+    private val updateCarpoolOfferUseCase: UpdateCarpoolOfferUseCase by inject()
     private val deleteCarpoolOfferUseCase: DeleteCarpoolOfferUseCase by inject()
     private val joinCarpoolUseCase: JoinCarpoolUseCase by inject()
     private val leaveCarpoolUseCase: LeaveCarpoolUseCase by inject()
@@ -126,17 +131,36 @@ class DefaultEventDetailComponent(
         }
     }
 
+    private var isChatTabActive = false
+
+    override fun onChatRead() {
+        isChatTabActive = true
+        updateSuccess { copy(unreadChatCount = 0) }
+    }
+
+    override fun onChatLeft() {
+        isChatTabActive = false
+    }
+
     private fun connectChat() {
-        // Collect incoming messages
         scope.launch {
             chatRepository.messages.collect { message ->
-                updateSuccess { copy(chatMessages = chatMessages + message) }
+                updateSuccess {
+                    copy(
+                        chatMessages    = chatMessages + message,
+                        unreadChatCount = if (!isChatTabActive) unreadChatCount + 1 else 0,
+                    )
+                }
             }
         }
-        // Maintain WS connection (suspends until closed)
         scope.launch {
-            runCatching { chatRepository.connect(eventId) }
-                .onFailure { println("Chat WS error: $it") }
+            var backoff = 2_000L
+            while (true) {
+                runCatching { chatRepository.connect(eventId) }
+                    .onFailure { println("Chat WS error: $it") }
+                delay(backoff)
+                backoff = (backoff * 2).coerceAtMost(30_000L)
+            }
         }
     }
 
@@ -149,10 +173,13 @@ class DefaultEventDetailComponent(
     }
 
     override fun onBack() = onBack.invoke()
+    override fun onEdit() = onEdit.invoke()
 
     override fun onDelete() {
         scope.launch {
-            deleteEventUseCase(eventId).onSuccess { onBack.invoke() }
+            deleteEventUseCase(eventId)
+                .onSuccess { onBack.invoke() }
+                .onFailure { e -> updateSuccess { copy(deleteError = e.message ?: "Erreur lors de la suppression") } }
         }
     }
 
@@ -186,8 +213,8 @@ class DefaultEventDetailComponent(
 
     override fun onAddItemBrought(label: String, quantity: Int, categoryId: Int?) {
         scope.launch {
-            addItemBroughtUseCase(eventId, label, quantity, categoryId).onSuccess { newItem ->
-                updateSuccess { copy(items = items.copy(brought = items.brought + newItem)) }
+            addItemBroughtUseCase(eventId, label, quantity, categoryId).onSuccess {
+                loadItems()
             }
         }
     }
@@ -204,6 +231,14 @@ class DefaultEventDetailComponent(
         scope.launch {
             createCarpoolOfferUseCase(eventId, seats, departurePoint, notes).onSuccess { offer ->
                 updateSuccess { copy(carpoolOffers = carpoolOffers + offer) }
+            }
+        }
+    }
+
+    override fun onUpdateCarpoolOffer(offerId: Int, seats: Int, departurePoint: String?, notes: String?) {
+        scope.launch {
+            updateCarpoolOfferUseCase(eventId, offerId, seats, departurePoint, notes).onSuccess { updated ->
+                updateSuccess { copy(carpoolOffers = carpoolOffers.map { if (it.id == offerId) updated else it }) }
             }
         }
     }
@@ -268,12 +303,29 @@ class DefaultEventDetailComponent(
         updateSuccess { copy(inviteEmailResult = null) }
     }
 
+    override fun onDismissDeleteError() {
+        updateSuccess { copy(deleteError = null) }
+    }
+
     override fun onRsvp(status: InvitationStatus) {
         val token = (state.value as? EventDetailState.Success)?.event?.inviteToken ?: return
         scope.launch {
             rsvpToInvitationUseCase(token, status).onSuccess {
                 updateSuccess { copy(currentUserInvitationStatus = status) }
             }
+        }
+    }
+
+    override fun onRefresh() {
+        updateSuccess { copy(isRefreshing = true) }
+        scope.launch {
+            val inv     = async { getEventInvitationsUseCase(eventId) }
+            val items   = async { getItemsUseCase(eventId) }
+            val carpool = async { getCarpoolOffersUseCase(eventId) }
+            inv.await().onSuccess     { invitations -> updateSuccess { copy(invitations = invitations) } }
+            items.await().onSuccess   { i           -> updateSuccess { copy(items = i) } }
+            carpool.await().onSuccess { offers      -> updateSuccess { copy(carpoolOffers = offers) } }
+            updateSuccess { copy(isRefreshing = false) }
         }
     }
 

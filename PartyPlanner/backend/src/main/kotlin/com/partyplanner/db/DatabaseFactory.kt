@@ -27,6 +27,7 @@ object DatabaseFactory {
                 ItemCategories, ItemRequests, ItemsBrought,
                 CarpoolOffers, CarpoolPassengers,
                 ChatMessages,
+                PasswordResetTokens,
             )
             seedCategories()
         }

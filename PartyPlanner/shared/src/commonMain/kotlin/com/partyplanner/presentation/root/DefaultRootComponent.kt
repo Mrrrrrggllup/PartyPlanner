@@ -4,6 +4,8 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
@@ -11,7 +13,10 @@ import com.partyplanner.domain.repository.AuthRepository
 import com.partyplanner.domain.usecase.auth.LoginUseCase
 import com.partyplanner.domain.usecase.auth.RegisterUseCase
 import com.partyplanner.presentation.auth.DefaultAuthComponent
+import com.partyplanner.presentation.auth.DefaultForgotPasswordComponent
+import com.partyplanner.presentation.auth.DefaultResetPasswordComponent
 import com.partyplanner.presentation.main.DefaultMainComponent
+import com.partyplanner.util.AuthEventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,6 +30,7 @@ class DefaultRootComponent(
     private val loginUseCase: LoginUseCase,
     private val registerUseCase: RegisterUseCase,
     private val initialInviteToken: String? = null,
+    private val initialResetToken: String? = null,
 ) : RootComponent, ComponentContext by componentContext {
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob()).also {
@@ -47,6 +53,13 @@ class DefaultRootComponent(
         scope.launch {
             if (authRepository.getStoredSession() != null) {
                 navigation.replaceAll(Config.Main(pendingInviteToken))
+            } else if (initialResetToken != null) {
+                navigation.push(Config.ResetPassword(initialResetToken))
+            }
+        }
+        scope.launch {
+            AuthEventBus.unauthorized.collect {
+                navigation.replaceAll(Config.Auth)
             }
         }
     }
@@ -62,7 +75,22 @@ class DefaultRootComponent(
                         val token = pendingInviteToken
                         pendingInviteToken = null
                         navigation.replaceAll(Config.Main(token))
-                    }
+                    },
+                    onForgotPasswordNav = { navigation.push(Config.ForgotPassword) }
+                )
+            )
+            Config.ForgotPassword -> RootComponent.Child.ForgotPasswordChild(
+                DefaultForgotPasswordComponent(
+                    componentContext = context,
+                    onBack = { navigation.pop() }
+                )
+            )
+            is Config.ResetPassword -> RootComponent.Child.ResetPasswordChild(
+                DefaultResetPasswordComponent(
+                    componentContext = context,
+                    token = config.token,
+                    onBack = { navigation.pop() },
+                    onSuccess = { navigation.replaceAll(Config.Auth) }
                 )
             )
             is Config.Main -> RootComponent.Child.MainChild(
@@ -78,5 +106,7 @@ class DefaultRootComponent(
     private sealed interface Config {
         @Serializable data object Auth : Config
         @Serializable data class Main(val inviteToken: String? = null) : Config
+        @Serializable data object ForgotPassword : Config
+        @Serializable data class ResetPassword(val token: String) : Config
     }
 }

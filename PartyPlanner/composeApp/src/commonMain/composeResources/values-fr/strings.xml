@@ -3,6 +3,7 @@
     <!-- Common -->
     <string name="common_cancel">Annuler</string>
     <string name="common_delete">Supprimer</string>
+    <string name="common_ok">OK</string>
     <string name="common_next">Suivant</string>
     <string name="common_add">Ajouter</string>
     <string name="common_by">par</string>
@@ -72,7 +73,7 @@
 
     <!-- Event detail - tabs -->
     <string name="detail_tab_guests">Invités</string>
-    <string name="detail_tab_items">Items</string>
+    <string name="detail_tab_items">Courses</string>
     <string name="detail_tab_chat">Chat</string>
     <string name="detail_tab_carpool">Covoit</string>
 

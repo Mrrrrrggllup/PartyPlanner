@@ -12,6 +12,13 @@ data class CreateCarpoolOfferDto(
 )
 
 @Serializable
+data class UpdateCarpoolOfferDto(
+    val seatsAvailable: Int,
+    val departurePoint: String? = null,
+    val notes: String? = null,
+)
+
+@Serializable
 data class JoinCarpoolDto(
     val pickupPoint: String? = null,
 )

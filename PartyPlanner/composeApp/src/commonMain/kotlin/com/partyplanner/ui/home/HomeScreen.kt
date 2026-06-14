@@ -28,6 +28,7 @@ import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
+import kotlin.time.Duration.Companion.hours
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,10 +106,17 @@ fun HomeScreen(component: HomeComponent) {
                         }
                     }
                     is HomeState.Success -> {
-                        val displayedEvents = if (selectedDate != null)
+                        val nowInstant = Clock.System.now()
+                        val displayedEvents = if (selectedDate != null) {
                             s.events.filter { it.startDate.date == selectedDate }
-                        else
-                            s.events
+                        } else {
+                            s.events.filter { event ->
+                                val cutoff = event.endDate
+                                    ?.toInstant(TimeZone.currentSystemDefault())
+                                    ?: (event.startDate.toInstant(TimeZone.currentSystemDefault()) + 24.hours)
+                                cutoff > nowInstant
+                            }
+                        }
 
                         if (displayedEvents.isEmpty()) {
                             item { EmptyState(filtered = selectedDate != null) }
@@ -292,7 +300,7 @@ private fun DayPill(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text  = date.dayOfWeek.name.take(3),
+                text  = if (date.dayOfMonth == 1) date.monthShort() else date.dayOfWeek.frShort(),
                 style = MaterialTheme.typography.labelSmall,
                 color = labelColor
             )
@@ -581,4 +589,20 @@ private fun LocalDate.formatMonth(): String {
     val months = listOf("Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
                         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre")
     return "${months[monthNumber - 1]} $year"
+}
+
+private fun LocalDate.monthShort(): String {
+    val months = listOf("Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
+                        "Juil", "Août", "Sep", "Oct", "Nov", "Déc")
+    return months[monthNumber - 1]
+}
+
+private fun DayOfWeek.frShort(): String = when (this) {
+    DayOfWeek.MONDAY    -> "Lu"
+    DayOfWeek.TUESDAY   -> "Ma"
+    DayOfWeek.WEDNESDAY -> "Me"
+    DayOfWeek.THURSDAY  -> "Je"
+    DayOfWeek.FRIDAY    -> "Ve"
+    DayOfWeek.SATURDAY  -> "Sa"
+    DayOfWeek.SUNDAY    -> "Di"
 }

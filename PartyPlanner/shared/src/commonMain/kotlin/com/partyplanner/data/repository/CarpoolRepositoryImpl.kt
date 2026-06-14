@@ -4,6 +4,7 @@ import com.partyplanner.data.remote.CarpoolApi
 import com.partyplanner.data.remote.dto.CarpoolOfferResponse
 import com.partyplanner.data.remote.dto.CarpoolPassengerResponse
 import com.partyplanner.data.remote.dto.CreateCarpoolOfferDto
+import com.partyplanner.data.remote.dto.UpdateCarpoolOfferDto
 import com.partyplanner.domain.model.CarpoolOffer
 import com.partyplanner.domain.model.CarpoolPassenger
 import com.partyplanner.domain.repository.CarpoolRepository
@@ -16,6 +17,10 @@ class CarpoolRepositoryImpl(private val api: CarpoolApi) : CarpoolRepository {
 
     override suspend fun createOffer(eventId: Int, seats: Int, departurePoint: String?, notes: String?): Result<CarpoolOffer> = runCatching {
         api.createOffer(eventId, CreateCarpoolOfferDto(seats, departurePoint, null, notes)).toDomain()
+    }
+
+    override suspend fun updateOffer(eventId: Int, offerId: Int, seats: Int, departurePoint: String?, notes: String?): Result<CarpoolOffer> = runCatching {
+        api.updateOffer(eventId, offerId, UpdateCarpoolOfferDto(seats, departurePoint, notes)).toDomain()
     }
 
     override suspend fun deleteOffer(eventId: Int, offerId: Int): Result<Unit> = runCatching {

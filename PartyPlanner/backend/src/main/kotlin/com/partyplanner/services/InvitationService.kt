@@ -5,6 +5,7 @@ import com.partyplanner.db.tables.Events
 import com.partyplanner.db.tables.InvitationEntity
 import com.partyplanner.db.tables.InvitationStatus
 import com.partyplanner.db.tables.Invitations
+import com.partyplanner.db.tables.ItemsBrought
 import com.partyplanner.db.tables.UserEntity
 import com.partyplanner.db.tables.Users
 import com.partyplanner.dto.InvitationResponse
@@ -16,6 +17,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class InvitationService {
@@ -68,6 +70,12 @@ class InvitationService {
                 }
             }
 
+            if (status == InvitationStatus.DECLINED) {
+                ItemsBrought.deleteWhere {
+                    (ItemsBrought.eventId eq event.id) and (ItemsBrought.userId eq user.id)
+                }
+            }
+
             InviteInfoResponse(
                 eventId       = event.id.value,
                 title         = event.title,
@@ -84,7 +92,11 @@ class InvitationService {
     suspend fun getEventInvitations(eventId: Int, userId: Int): List<InvitationResponse> = withContext(Dispatchers.IO) {
         transaction {
             val event = EventEntity.findById(eventId) ?: error("Événement introuvable")
-            require(event.owner.id.value == userId) { "Accès refusé" }
+            val isOwner   = event.owner.id.value == userId
+            val isInvited = InvitationEntity.find {
+                (Invitations.eventId eq event.id) and (Invitations.userId eq userId)
+            }.firstOrNull() != null
+            require(isOwner || isInvited) { "Accès refusé" }
             InvitationEntity.find { Invitations.eventId eq event.id }
                 .map { it.toResponse() }
         }

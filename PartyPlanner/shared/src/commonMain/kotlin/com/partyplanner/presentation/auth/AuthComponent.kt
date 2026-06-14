@@ -7,4 +7,5 @@ interface AuthComponent {
     fun login(email: String, password: String)
     fun register(email: String, password: String, displayName: String, phone: String? = null)
     fun resetState()
+    fun onForgotPassword()
 }

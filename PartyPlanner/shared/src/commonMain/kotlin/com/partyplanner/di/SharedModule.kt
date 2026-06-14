@@ -24,9 +24,12 @@ import com.partyplanner.domain.usecase.carpool.DeleteCarpoolOfferUseCase
 import com.partyplanner.domain.usecase.carpool.GetCarpoolOffersUseCase
 import com.partyplanner.domain.usecase.carpool.JoinCarpoolUseCase
 import com.partyplanner.domain.usecase.carpool.LeaveCarpoolUseCase
+import com.partyplanner.domain.usecase.carpool.UpdateCarpoolOfferUseCase
+import com.partyplanner.domain.usecase.auth.ForgotPasswordUseCase
 import com.partyplanner.domain.usecase.auth.LoginUseCase
 import com.partyplanner.domain.usecase.auth.LogoutUseCase
 import com.partyplanner.domain.usecase.auth.RegisterUseCase
+import com.partyplanner.domain.usecase.auth.ResetPasswordUseCase
 import com.partyplanner.domain.usecase.event.CreateEventUseCase
 import com.partyplanner.domain.usecase.event.DeleteEventUseCase
 import com.partyplanner.domain.usecase.event.GetEventUseCase
@@ -45,17 +48,21 @@ import com.partyplanner.domain.usecase.item.DeleteItemRequestUseCase
 import com.partyplanner.domain.usecase.item.FulfillItemRequestUseCase
 import com.partyplanner.domain.usecase.item.GetCategoriesUseCase
 import com.partyplanner.domain.usecase.item.GetItemsUseCase
+import com.partyplanner.util.AuthEventBus
 import com.partyplanner.util.BASE_URL
 import io.ktor.client.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.plugins.websocket.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 
 val sharedModule = module {
     single {
+        val sessionStorage: SessionStorage = get()
         HttpClient {
             install(ContentNegotiation) {
                 json(Json { ignoreUnknownKeys = true })
@@ -64,6 +71,16 @@ val sharedModule = module {
                 level = LogLevel.INFO
             }
             install(WebSockets)
+            HttpResponseValidator {
+                validateResponse { response ->
+                    if (response.status == HttpStatusCode.Unauthorized &&
+                        !response.request.url.encodedPath.startsWith("/auth")
+                    ) {
+                        sessionStorage.clearSession()
+                        AuthEventBus.emit()
+                    }
+                }
+            }
         }
     }
 
@@ -74,6 +91,8 @@ val sharedModule = module {
     factory { LoginUseCase(get()) }
     factory { RegisterUseCase(get()) }
     factory { LogoutUseCase(get()) }
+    factory { ForgotPasswordUseCase(get()) }
+    factory { ResetPasswordUseCase(get()) }
 
     single { EventApi(get(), BASE_URL, get()) }
     single<EventRepository> { EventRepositoryImpl(get()) }
@@ -113,6 +132,7 @@ val sharedModule = module {
 
     factory { GetCarpoolOffersUseCase(get()) }
     factory { CreateCarpoolOfferUseCase(get()) }
+    factory { UpdateCarpoolOfferUseCase(get()) }
     factory { DeleteCarpoolOfferUseCase(get()) }
     factory { JoinCarpoolUseCase(get()) }
     factory { LeaveCarpoolUseCase(get()) }

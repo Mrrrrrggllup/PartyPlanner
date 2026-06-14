@@ -13,6 +13,7 @@ interface EventDetailComponent {
     fun onAddItemBrought(label: String, quantity: Int, categoryId: Int?)
     fun onDeleteItemBrought(broughtId: Int)
     fun onCreateCarpoolOffer(seats: Int, departurePoint: String?, notes: String?)
+    fun onUpdateCarpoolOffer(offerId: Int, seats: Int, departurePoint: String?, notes: String?)
     fun onDeleteCarpoolOffer(offerId: Int)
     fun onJoinCarpool(offerId: Int, pickupPoint: String?)
     fun onLeaveCarpool(offerId: Int)
@@ -20,5 +21,10 @@ interface EventDetailComponent {
     fun onInviteByEmail(email: String)
     fun onInviteByUserId(userId: Int)
     fun onDismissInviteResult()
+    fun onDismissDeleteError()
     fun onRsvp(status: InvitationStatus)
+    fun onRefresh()
+    fun onChatRead()
+    fun onChatLeft()
+    fun onEdit()
 }

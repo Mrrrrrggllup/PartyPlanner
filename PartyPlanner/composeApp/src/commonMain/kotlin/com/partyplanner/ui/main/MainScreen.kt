@@ -6,6 +6,7 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.slide
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.partyplanner.presentation.main.MainComponent
 import com.partyplanner.ui.event.CreateEventScreen
+import com.partyplanner.ui.event.EditEventScreen
 import com.partyplanner.ui.event.EventDetailScreen
 import com.partyplanner.ui.home.HomeScreen
 import com.partyplanner.ui.invitation.InvitationScreen
@@ -21,6 +22,7 @@ fun MainScreen(component: MainComponent) {
             is MainComponent.Child.HomeChild        -> HomeScreen(child.component)
             is MainComponent.Child.EventDetailChild -> EventDetailScreen(child.component)
             is MainComponent.Child.CreateEventChild -> CreateEventScreen(child.component)
+            is MainComponent.Child.EditEventChild   -> EditEventScreen(child.component)
             is MainComponent.Child.InvitationChild  -> InvitationScreen(child.component)
             is MainComponent.Child.ProfileChild     -> ProfileScreen(child.component)
         }

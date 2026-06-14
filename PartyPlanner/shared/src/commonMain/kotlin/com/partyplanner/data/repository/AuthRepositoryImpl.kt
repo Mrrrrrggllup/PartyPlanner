@@ -36,4 +36,10 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout() = sessionStorage.clearSession()
+
+    override suspend fun forgotPassword(email: String): Result<Unit> =
+        runCatching { authApi.forgotPassword(email) }
+
+    override suspend fun resetPassword(token: String, newPassword: String): Result<Unit> =
+        runCatching { authApi.resetPassword(token, newPassword) }
 }

@@ -1,6 +1,6 @@
 # PartyPlanner — Suivi d'avancement
 
-_Dernière mise à jour : 2026-03-28_
+_Dernière mise à jour : 2026-06-14_
 
 ---
 
@@ -123,7 +123,71 @@ _Dernière mise à jour : 2026-03-28_
 
 ---
 
+## Phase 4 — Polissage UX ✅
+
+### Fixes EventDetailScreen
+- Hero réduit à 140dp (au lieu de 200dp)
+- Padding bas du contenu à 104dp pour ne pas déborder sous la tab bar
+- Pill "👥 X confirmés" dans le hero (visible par tous)
+- Bouton ✏️ en haut à droite du hero pour l'organisateur → navigue vers EditEvent
+- `QuickRsvpBar` sous le hero pour les invités non-owner (3 boutons RSVP inline)
+- Pull-to-refresh (`PullToRefreshBox`) : recharge invitations + items + covoits en parallèle
+- Reconnexion WS automatique avec backoff exponentiel (2s → 4s → … → 30s max)
+- Badge sur les onglets : messages non lus, items non remplis, invitations en attente (owner), places covoit dispo
+- Badge chat reset à 0 quand l'onglet Chat est ouvert (`onChatRead` / `onChatLeft`)
+- Renommage onglet "Items" → "Courses" (strings FR + EN)
+
+### Édition d'événement ✅
+- `EditEventScreen` / `EditEventComponent` / `DefaultEditEventComponent`
+- Formulaire pré-rempli avec les données existantes via `LaunchedEffect`
+- `UpdateEventUseCase` + route `PUT /events/{id}` (déjà existante)
+- Navigation `Config.EditEvent(eventId)` dans le root stack main
+
+### Édition d'offre de covoiturage ✅
+- `EditCarpoolSheet` (version pré-remplie de `CreateCarpoolSheet`)
+- Bouton "✏️ Modifier mon offre" visible uniquement pour le driver
+- `UpdateCarpoolOfferUseCase` + `PUT /events/{id}/carpool/{offerId}` côté backend
+- DTO `UpdateCarpoolOfferDto` (seats, departurePoint, notes)
+
+### Nettoyage RSVP DECLINED ✅
+- Quand un invité passe en DECLINED : suppression automatique de ses `ItemsBrought` pour l'événement
+
+### Keyboard dismiss ✅
+- `CreateEventScreen` : tap en dehors des champs ferme le clavier (`LocalFocusManager.clearFocus`)
+
+### Tuiles de navigation ✅
+- `StatsRow` remplacé par 4 tuiles cliquables (👥 Confirmés, 🛒 Courses, 💬 Chat, 🚗 Covoit)
+- Chaque tuile navigue directement vers son onglet (ripple natif via `OutlinedCard(onClick)`)
+- Chat affiche le nombre de messages non lus (ou `·` si 0)
+
+### Deep link invitations ✅
+- Lien partagé : `http://[serveur]/i/{token}` au lieu de `partyplanner://invite/{token}` (non cliquable)
+- Backend : route publique `GET /i/{token}` → page HTML avec redirect JS vers `partyplanner://invite/{token}`
+- Si l'app est installée : ouvre directement l'app via le deep link existant
+- Si l'app n'est pas installée : bouton "Ouvrir dans PartyPlanner" sur la page web
+
+---
+
 ## Phase 4 — Restant
+
+### Réinitialisation de mot de passe ✅
+
+**Backend**
+- Table `password_reset_tokens` (userId FK, token UNIQUE, expiresAt, usedAt nullable)
+- `PasswordResetService` : `requestReset(email)` (silencieux si email inconnu), `resetPassword(token, newPassword)`
+- `POST /auth/forgot-password` (toujours 200), `POST /auth/reset-password`
+- Envoi de mail via API Resend (`java.net.http.HttpClient` JVM 17, pas de dépendance supplémentaire)
+- Config `resend { apiKey, fromEmail, appBaseUrl }` dans `application.conf` + variables d'env
+
+**Shared + UI**
+- `ForgotPasswordUseCase`, `ResetPasswordUseCase`
+- `ForgotPasswordComponent` / `DefaultForgotPasswordComponent`
+- `ResetPasswordComponent` / `DefaultResetPasswordComponent`
+- Navigation dans le root stack (avant login, accessible sans auth)
+- `ForgotPasswordScreen` : saisie email, état succès avec message informatif
+- `ResetPasswordScreen` : saisie + confirmation MDP, validation longueur + correspondance
+- Lien "Mot de passe oublié ?" dans le LoginForm
+- Deep link `partyplanner://reset-password?token=...` géré dans `MainActivity`
 
 ### Push notifications FCM ⬜
 

@@ -215,19 +215,63 @@
 - [x] `network_security_config.xml` — cleartext HTTP autorisé pour 10.0.2.2 (émulateur) et 51.15.128.216 (prod)
 - [x] `PlatformConfig.android.kt` — `BASE_URL` via `BuildConfig` du module `shared` (debug/release)
 - [x] Firebase App Distribution — pipeline de déploiement APK (keystore signé, release notes, testeurs par email)
-- [x] `versionCode = 2 / versionName = 1.1`
+- [x] `versionCode = 3 / versionName = 1.2`
 
-## Localisation ✅ (partiel)
+## Localisation ✅
 
-- [x] `values/strings.xml` (EN) + `values-fr/strings.xml` (FR) — ~90 strings
+- [x] `values/strings.xml` (EN) + `values-fr/strings.xml` (FR) — ~100 strings
 - [x] Tous les écrans migrés vers `stringResource()` : Auth, Profile, Home, Invitation, CreateEvent, EventDetail
 - [x] `DetailTab` enum nettoyé — `localizedLabel` extension `@Composable`
+- [x] **Bug #1 corrigé** — `\'` remplacé par `'` dans les deux fichiers CMP (CMP n'utilise pas l'échappement Android XML)
 
-### Bugs connus à corriger
-- [ ] **Bug #1 — Apostrophes affichées avec `\`** : les chaînes contenant `\'` dans les XML Compose MP affichent le slash littéralement (ex: "J\'y serai" au lieu de "J'y serai"). À corriger : remplacer `\'` par `'` dans les strings.xml CMP (contrairement à Android XML, CMP n'utilise pas ce format d'échappement).
-- [ ] **Bug #2 — Chat vide** : les messages du chat ne s'affichent pas dans le Tab Chat. Vérifier la connexion WebSocket en prod (URL `ws://` vs `wss://`, token JWT, accès réseau VPS).
+## Phase 4.5 — Invitations par email ✅
+
+- [x] `POST /events/{id}/invite` — invite un utilisateur existant par email (owner only), 409 si déjà invité
+- [x] `POST /events/{id}/invite-user` — invite directement par userId (pour les suggestions rapides)
+- [x] `GET /events/{id}/invite-suggestions` — retourne les users déjà invités à d'autres events de l'owner, non encore invités à cet event
+- [x] `getEventsForUser` inclut désormais les invitations PENDING → l'invité voit l'event dans son HomeScreen dès l'invitation
+- [x] `EventResponse` + `Event` domain : champ `currentUserInvitationStatus` — l'app sait si l'user est owner/invité/pending
+- [x] Badge "Invitation" (couleur tertiary) sur les EventCards pour les events PENDING
+- [x] Onglet Invités owner : chips de suggestions rapides (scroll horizontal, initiales, tap = invite immédiate) + champ email + bouton "Inviter" + chip feedback succès/erreur
+- [x] Onglet Invités non-owner : bannière RSVP (✅ 🤔 ❌) avec état sélectionné, directement dans EventDetailScreen
+
+## Corrections Chat ✅
+
+- [x] **Bug emoji corrigé** — `ChatApi` et `ChatRoutes` utilisent `Json { isLenient = true }` pour décoder les frames WebSocket (gestion des surrogate pairs emoji)
+- [x] `saveMessage` + `broadcast` wrappés dans `runCatching` côté backend — la session WebSocket ne crash plus sur erreur DB
 
 ## Phase 5 — Store ❌
 - [ ] Google Play
 - [ ] TestFlight (Codemagic)
 - [ ] RGPD
+
+---
+
+## Backlog V1.1 — Bugs & Features (session 2026-06-14)
+
+### Bugs critiques
+- [x] **401 auto-logout** — `HttpResponseValidator` dans HttpClient + `AuthEventBus` → `DefaultRootComponent` navigue vers Auth si token expiré
+- [x] **Suppression événement marche pas** — cascade delete backend (FK contraintes) + feedback erreur UI
+- [x] **Stats invités restent à 0 pour les non-owners** — `InvitationService.getEventInvitations` ouvert aux participants (owner OU invité)
+- [x] **Item "apporté" n'apparaît pas après ajout** — `onAddItemBrought` déclenche `loadItems()` après succès (reload serveur garanti)
+- [x] **Vol de trucs entre utilisateurs** — `fulfillRequest` : seul l'assigné ou l'owner peut dé-fulfiller une demande déjà prise
+- [x] **Décalage horaire -2h** — `formatChatTime` convertit UTC → heure locale device avant affichage
+- [x] **RSVP "je viens pas" → supprimer les items brought** — `InvitationService.rsvp` : `ItemsBrought.deleteWhere` quand `status == DECLINED`
+
+### Bugs UX
+- [x] **Dates en anglais + mois invisible à l'accueil** — `DayPill` utilise `frShort()` (Lu/Ma/Me...) + `monthShort()` le 1er du mois
+- [x] **Impossible de sortir des champs** — `LocalFocusManager.clearFocus()` sur tap hors champ dans `CreateEventScreen`
+- [ ] **Date de fin : pas de pré-sélection** — le DatePicker de fin ne doit pas pré-remplir, mais le bouton "Suivant" doit rester cliquable sans date de fin
+- [x] **Header trop gros sur la page de fête** — hero `DetailHero` passé de 200dp à 140dp
+- [x] **Marge entre menu bas et contenu** — `contentPadding` LazyColumn passé de 80dp à 104dp
+- [x] **Masquer les événements terminés** — filtre `endDate` ou `startDate + 24h` vs `Clock.System.now()`
+
+### Features
+- [x] **Pull-to-refresh sur les onglets** — `PullToRefreshBox` sur le `Box(weight(1f))` dans EventDetailScreen, `onRefresh()` async dans DefaultEventDetailComponent
+- [x] **Fix WebSocket chat** — boucle de reconnexion avec backoff exponentiel (2s → 30s max) dans `connectChat()`
+- [x] **Renommer "Items" → "Courses"** — `detail_tab_items` mis à jour dans strings.xml FR (Courses) + EN (Groceries)
+- [x] **Modifier un événement** — `EditEventComponent` + `DefaultEditEventComponent` + `EditEventScreen` avec pré-remplissage, bouton ✏️ dans le hero pour l'owner
+- [x] **Modifier son covoit** — `PUT /events/{id}/carpool/{offerId}`, `UpdateCarpoolOfferUseCase`, bouton "✏️ Modifier mon offre" + `EditCarpoolSheet` pré-rempli
+- [x] **Infos guests dans le header + RSVP plus visible** — pill "👥 X/Y présents" dans hero + `QuickRsvpBar` compact (Tu viens ? ✅🤔❌) épinglé sous le hero pour les non-owners
+- [x] **Badges notifs sur les onglets** — `BadgedBox` sur chaque tab : chat (unreadChatCount), courses (unfulfilled requests), invités (PENDING pour owner), covoit (offres avec places dispo)
+- [ ] **Mot de passe oublié** — email Resend avec lien de reset (token temporaire backend)

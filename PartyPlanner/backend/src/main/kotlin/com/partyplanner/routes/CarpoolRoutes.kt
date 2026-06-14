@@ -2,6 +2,7 @@ package com.partyplanner.routes
 
 import com.partyplanner.dto.CreateCarpoolOfferDto
 import com.partyplanner.dto.JoinCarpoolDto
+import com.partyplanner.dto.UpdateCarpoolOfferDto
 import com.partyplanner.services.CarpoolService
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -30,6 +31,15 @@ fun Route.carpoolRoutes(carpoolService: CarpoolService) {
             }
 
             route("/{offerId}") {
+                put {
+                    val eventId = call.parameters["id"]!!.toInt()
+                    val offerId = call.parameters["offerId"]!!.toInt()
+                    val dto = call.receive<UpdateCarpoolOfferDto>()
+                    runCatching { carpoolService.updateOffer(eventId, offerId, call.carpoolUserId(), dto) }
+                        .onSuccess { call.respond(it) }
+                        .onFailure { call.respond(HttpStatusCode.Forbidden, mapOf("error" to it.message)) }
+                }
+
                 delete {
                     val eventId = call.parameters["id"]!!.toInt()
                     val offerId = call.parameters["offerId"]!!.toInt()

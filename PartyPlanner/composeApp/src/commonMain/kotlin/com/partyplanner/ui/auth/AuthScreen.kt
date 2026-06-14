@@ -66,7 +66,8 @@ fun AuthScreen(component: AuthComponent) {
                 AuthMode.Login -> LoginForm(
                     isLoading = state is AuthState.Loading,
                     error = (state as? AuthState.Error)?.message,
-                    onSubmit = { email, password -> component.login(email, password) }
+                    onSubmit = { email, password -> component.login(email, password) },
+                    onForgotPassword = component::onForgotPassword
                 )
                 AuthMode.Register -> RegisterForm(
                     isLoading = state is AuthState.Loading,
@@ -189,7 +190,8 @@ private fun AuthTab(
 private fun LoginForm(
     isLoading: Boolean,
     error: String?,
-    onSubmit: (email: String, password: String) -> Unit
+    onSubmit: (email: String, password: String) -> Unit,
+    onForgotPassword: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -230,7 +232,20 @@ private fun LoginForm(
 
         ErrorText(error)
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(8.dp))
+
+        TextButton(
+            onClick = onForgotPassword,
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text(
+                text = "Mot de passe oublié ?",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
 
         GradientButton(
             text = stringResource(Res.string.auth_btn_sign_in),
