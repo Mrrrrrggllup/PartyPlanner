@@ -30,6 +30,7 @@ data class ItemRequestResponse(
     val quantity: Int,
     val isFulfilled: Boolean,
     val assignedToName: String?,
+    val requestedById: Int?,
     val categoryId: Int?,
     val categoryLabel: String?,
     val categoryIcon: String?,
@@ -51,4 +52,5 @@ data class ItemBroughtResponse(
 data class ItemsResponse(
     val requests: List<ItemRequestResponse>,
     val brought: List<ItemBroughtResponse>,
+    val newItemsCount: Int = 0,
 )

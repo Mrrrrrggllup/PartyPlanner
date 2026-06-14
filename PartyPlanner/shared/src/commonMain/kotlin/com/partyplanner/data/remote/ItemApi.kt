@@ -76,6 +76,13 @@ class ItemApi(
         if (!response.status.isSuccess()) throw Exception(errorMessage(response))
     }
 
+    suspend fun markItemsSeen(eventId: Int) {
+        val response = httpClient.post("$baseUrl/events/$eventId/items/seen") {
+            header(HttpHeaders.Authorization, bearerToken())
+        }
+        if (!response.status.isSuccess()) throw Exception(errorMessage(response))
+    }
+
     private suspend fun errorMessage(response: HttpResponse): String = when (response.status) {
         HttpStatusCode.NotFound  -> "Introuvable"
         HttpStatusCode.Forbidden -> "Accès refusé"

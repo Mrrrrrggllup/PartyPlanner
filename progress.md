@@ -275,3 +275,15 @@
 - [x] **Infos guests dans le header + RSVP plus visible** — pill "👥 X/Y présents" dans hero + `QuickRsvpBar` compact (Tu viens ? ✅🤔❌) épinglé sous le hero pour les non-owners
 - [x] **Badges notifs sur les onglets** — `BadgedBox` sur chaque tab : chat (unreadChatCount), courses (unfulfilled requests), invités (PENDING pour owner), covoit (offres avec places dispo)
 - [ ] **Mot de passe oublié** — email Resend avec lien de reset (token temporaire backend)
+
+## Backlog V1.2 — Retours UX soirée & courses (session 2026-06-14)
+
+### Bugs
+- [x] **Doublon de libellé sous les icônes (boutons en bas de la page soirée)** — `DetailTabBar` était placé comme enfant superposé du `Box` de `PullToRefreshBox` (chevauchait le haut de la `LazyColumn`, laissant dépasser les libellés de `StatsRow`) ; sorti en sibling du `Column` sous `PullToRefreshBox`, `contentPadding` bas de la LazyColumn réduit de 104dp à 16dp
+- [x] **Suppression d'une course qu'on a créée impossible** — `ItemRequests.requestedBy` (FK Users) + `deleteItemRequest` autorise owner OU demandeur ; bouton ✕ visible si `isOwner || requestedById == currentUserId`
+- [x] **Course cochée n'apparaît pas dans "Ce qu'on apporte"** — `ItemsTabContent` déplace les requests `isFulfilled` dans la section "apporté" (groupées avec `ItemsBrought`)
+- [x] **Pas de notif sur nouvelles courses + reset en sortant/revenant** — persistance backend `EventItemViews` (last_seen_at par user/event) ; `ItemsResponse.newItemsCount` = courses/apports créés par d'autres depuis la dernière visite ; badge onglet Courses + `onItemsRead()` (POST `/events/{id}/items/seen`) au lieu du compteur "non cochées"
+- [x] **Nom de l'organisateur absent (header + liste invités)** — `Event.ownerName` ajouté de bout en bout (DTOs, domain, repository) ; affiché dans `DetailHero` (non-owner) et `OrganizerRow` dans l'onglet invités
+
+### Features
+- [ ] **Photo de profil utilisateur** — ajouter un avatar/photo de profil (upload + affichage dans listes invités, chat, etc.)

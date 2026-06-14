@@ -4,8 +4,14 @@ import com.partyplanner.db.tables.*
 import com.partyplanner.dto.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ItemService {
@@ -19,11 +25,6 @@ class ItemService {
             (Invitations.eventId eq eventId) and (Invitations.userId eq userId)
         }.firstOrNull() != null
         require(isOwner || isInvited) { "Access denied" }
-    }
-
-    private fun checkOwner(eventId: Int, userId: Int) {
-        val event = EventEntity.findById(eventId) ?: error("Event not found")
-        require(event.owner.id.value == userId) { "Owner only" }
     }
 
     // ── Categories ────────────────────────────────────────────────────────────
@@ -49,7 +50,44 @@ class ItemService {
                 .find { ItemsBrought.eventId eq eventId }
                 .orderBy(ItemsBrought.categoryId to SortOrder.ASC_NULLS_LAST, ItemsBrought.id to SortOrder.ASC)
                 .map { it.toResponse() }
-            ItemsResponse(requests, brought)
+
+            val event    = EventEntity.findById(eventId)!!
+            val lastSeen = EventItemViewEntity.find {
+                (EventItemViews.eventId eq eventId) and (EventItemViews.userId eq userId)
+            }.firstOrNull()?.lastSeenAt ?: event.createdAt
+
+            val newRequests = ItemRequestEntity.find {
+                (ItemRequests.eventId eq eventId) and
+                    (ItemRequests.createdAt greater lastSeen) and
+                    ((ItemRequests.requestedBy.isNull()) or (ItemRequests.requestedBy neq userId))
+            }.count()
+            val newBrought = ItemBroughtEntity.find {
+                (ItemsBrought.eventId eq eventId) and
+                    (ItemsBrought.createdAt greater lastSeen) and
+                    (ItemsBrought.userId neq userId)
+            }.count()
+
+            ItemsResponse(requests, brought, newItemsCount = (newRequests + newBrought).toInt())
+        }
+    }
+
+    /** Marque les courses comme vues par l'utilisateur (reset du badge de notif). */
+    suspend fun markItemsSeen(eventId: Int, userId: Int): Unit = withContext(Dispatchers.IO) {
+        transaction {
+            checkAccess(eventId, userId)
+            val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            val view = EventItemViewEntity.find {
+                (EventItemViews.eventId eq eventId) and (EventItemViews.userId eq userId)
+            }.firstOrNull()
+            if (view != null) {
+                view.lastSeenAt = now
+            } else {
+                EventItemViewEntity.new {
+                    event      = EventEntity.findById(eventId)!!
+                    user       = UserEntity.findById(userId)!!
+                    lastSeenAt = now
+                }
+            }
         }
     }
 
@@ -67,7 +105,9 @@ class ItemService {
                     label         = dto.label.trim()
                     quantity      = dto.quantity.coerceAtLeast(1)
                     this.category = category
+                    requestedBy   = UserEntity.findById(userId)
                     isFulfilled   = false
+                    createdAt     = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             }
         }
@@ -93,13 +133,15 @@ class ItemService {
             }
         }
 
-    /** Only owner can delete item requests. */
+    /** Owner can delete any; the person who requested it can delete their own. */
     suspend fun deleteItemRequest(eventId: Int, requestId: Int, userId: Int): Unit =
         withContext(Dispatchers.IO) {
             transaction {
-                checkOwner(eventId, userId)
                 val req = ItemRequestEntity.findById(requestId) ?: error("Item not found")
                 require(req.event.id.value == eventId) { "Item not found" }
+                val isOwner    = req.event.owner.id.value == userId
+                val isRequester = req.requestedBy?.id?.value == userId
+                require(isOwner || isRequester) { "Access denied" }
                 req.delete()
             }
         }
@@ -119,6 +161,7 @@ class ItemService {
                     label         = dto.label.trim()
                     quantity      = dto.quantity.coerceAtLeast(1)
                     this.category = category
+                    createdAt     = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             }
         }
@@ -144,6 +187,7 @@ class ItemService {
         quantity       = quantity,
         isFulfilled    = isFulfilled,
         assignedToName = assignedTo?.displayName,
+        requestedById  = requestedBy?.id?.value,
         categoryId     = category?.id?.value,
         categoryLabel  = category?.label,
         categoryIcon   = category?.icon,

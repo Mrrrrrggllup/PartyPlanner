@@ -25,6 +25,13 @@ fun Route.itemRoutes(itemService: ItemService) {
                     .onFailure { call.respond(HttpStatusCode.Forbidden, mapOf("error" to it.message)) }
             }
 
+            post("/seen") {
+                val eventId = call.parameters["id"]!!.toInt()
+                runCatching { itemService.markItemsSeen(eventId, call.itemUserId()) }
+                    .onSuccess { call.respond(HttpStatusCode.NoContent) }
+                    .onFailure { call.respond(HttpStatusCode.Forbidden, mapOf("error" to it.message)) }
+            }
+
             route("/requests") {
                 post {
                     val eventId = call.parameters["id"]!!.toInt()

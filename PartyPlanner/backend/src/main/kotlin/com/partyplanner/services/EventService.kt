@@ -121,6 +121,7 @@ class EventService {
         startDate                   = startDate,
         endDate                     = endDate,
         ownerId                     = owner.id.value,
+        ownerName                   = owner.displayName,
         inviteToken                 = inviteToken,
         createdAt                   = createdAt,
         currentUserInvitationStatus = currentUserInvitationStatus?.name,

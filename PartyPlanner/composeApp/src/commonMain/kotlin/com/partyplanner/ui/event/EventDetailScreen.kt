@@ -88,6 +88,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
                         subtitle     = buildSubtitle(s.event),
                         onBack       = component::onBack,
                         onEdit       = if (s.isOwner) component::onEdit else null,
+                        organizerName = if (!s.isOwner) s.event.ownerName else null,
                         guestSummary = run {
                             val confirmed = s.invitations.count { it.status == InvitationStatus.ACCEPTED }
                             val total     = s.invitations.size
@@ -116,7 +117,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 104.dp)
+                                contentPadding = PaddingValues(bottom = 16.dp)
                             ) {
                                 item {
                                     StatsRow(
@@ -132,6 +133,13 @@ fun EventDetailScreen(component: EventDetailComponent) {
 
                                 when (selectedTab) {
                                     DetailTab.INVITES -> {
+                                        item {
+                                            OrganizerRow(
+                                                name = s.event.ownerName,
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                        item { Spacer(Modifier.height(8.dp)) }
                                         // RSVP banner — non-owner seulement
                                         if (!s.isOwner) {
                                             item {
@@ -281,23 +289,24 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                 }
                             }
                         }
-
-                        DetailTabBar(
-                            selected = selectedTab,
-                            onSelect = { tab ->
-                                if (tab == DetailTab.CHAT) component.onChatRead()
-                                else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
-                                selectedTab = tab
-                            },
-                            modifier = Modifier.navigationBarsPadding(),
-                            badgeCounts = mapOf(
-                                DetailTab.CHAT   to s.unreadChatCount,
-                                DetailTab.ITEMS  to s.items.requests.count { !it.isFulfilled },
-                                DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
-                                DetailTab.COVOIT to s.carpoolOffers.count { it.seatsRemaining > 0 },
-                            ),
-                        )
                     }
+
+                    DetailTabBar(
+                        selected = selectedTab,
+                        onSelect = { tab ->
+                            if (tab == DetailTab.CHAT) component.onChatRead()
+                            else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
+                            if (tab == DetailTab.ITEMS) component.onItemsRead()
+                            selectedTab = tab
+                        },
+                        modifier = Modifier.navigationBarsPadding(),
+                        badgeCounts = mapOf(
+                            DetailTab.CHAT   to s.unreadChatCount,
+                            DetailTab.ITEMS  to s.items.newItemsCount,
+                            DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
+                            DetailTab.COVOIT to s.carpoolOffers.count { it.seatsRemaining > 0 },
+                        ),
+                    )
                 }
             }
         }
@@ -403,6 +412,7 @@ private fun DetailHero(
     subtitle: String,
     onBack: () -> Unit,
     guestSummary: String? = null,
+    organizerName: String? = null,
     onEdit: (() -> Unit)? = null,
 ) {
     val gradA = MaterialTheme.appColors.gradA
@@ -472,6 +482,14 @@ private fun DetailHero(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+            }
+            if (organizerName != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = stringResource(Res.string.invitation_organized_by) + " $organizerName",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.85f)
                 )
@@ -852,6 +870,29 @@ private fun InviteResultChip(
     }
 }
 
+// ── Organizer row ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun OrganizerRow(name: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppShapes.Card)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.5.dp, MaterialTheme.colorScheme.outline, AppShapes.Card)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(name, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text  = stringResource(Res.string.home_badge_organizer),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
 // ── Guest row ─────────────────────────────────────────────────────────────────
 
 @Composable
@@ -967,16 +1008,19 @@ fun androidx.compose.foundation.lazy.LazyListScope.ItemsTabContent(
     onDeleteRequest: (Int) -> Unit,
     onDeleteBrought: (Int) -> Unit,
 ) {
-    if (eventItems.requests.isNotEmpty()) {
+    val pendingRequests   = eventItems.requests.filter { !it.isFulfilled }
+    val fulfilledRequests = eventItems.requests.filter { it.isFulfilled }
+
+    if (pendingRequests.isNotEmpty()) {
         item {
             Text(
-                text     = stringResource(Res.string.detail_items_needed_header, eventItems.requests.size),
+                text     = stringResource(Res.string.detail_items_needed_header, pendingRequests.size),
                 style    = MaterialTheme.typography.labelSmall,
                 color    = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
         }
-        val requestGroups = eventItems.requests.groupBy { it.categoryId }
+        val requestGroups = pendingRequests.groupBy { it.categoryId }
         requestGroups.forEach { (catId, groupItems) ->
             val catIcon  = groupItems.first().categoryIcon
             val catLabel = groupItems.first().categoryLabel
@@ -988,7 +1032,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.ItemsTabContent(
             items(groupItems, key = { "req-${it.id}" }) { req ->
                 ItemRequestRow(
                     item      = req,
-                    isOwner   = isOwner,
+                    canDelete = isOwner || req.requestedById == currentUserId,
                     onFulfill = { onFulfill(req.id) },
                     onDelete  = { onDeleteRequest(req.id) },
                     modifier  = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -998,14 +1042,34 @@ fun androidx.compose.foundation.lazy.LazyListScope.ItemsTabContent(
         item { Spacer(Modifier.height(8.dp)) }
     }
 
-    if (eventItems.brought.isNotEmpty()) {
+    val broughtCount = eventItems.brought.size + fulfilledRequests.size
+    if (broughtCount > 0) {
         item {
             Text(
-                text     = stringResource(Res.string.detail_items_brought_header, eventItems.brought.size),
+                text     = stringResource(Res.string.detail_items_brought_header, broughtCount),
                 style    = MaterialTheme.typography.labelSmall,
                 color    = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
+        }
+        val fulfilledGroups = fulfilledRequests.groupBy { it.categoryId }
+        fulfilledGroups.forEach { (catId, groupItems) ->
+            val catIcon  = groupItems.first().categoryIcon
+            val catLabel = groupItems.first().categoryLabel
+            if (catIcon != null || catLabel != null) {
+                item(key = "ful-cat-$catId") {
+                    CategoryHeader(icon = catIcon, label = catLabel ?: "")
+                }
+            }
+            items(groupItems, key = { "ful-${it.id}" }) { req ->
+                ItemRequestRow(
+                    item      = req,
+                    canDelete = isOwner || req.requestedById == currentUserId,
+                    onFulfill = { onFulfill(req.id) },
+                    onDelete  = { onDeleteRequest(req.id) },
+                    modifier  = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
         }
         val broughtGroups = eventItems.brought.groupBy { it.categoryId }
         broughtGroups.forEach { (catId, groupItems) ->
@@ -1027,7 +1091,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.ItemsTabContent(
         }
     }
 
-    if (eventItems.requests.isEmpty() && eventItems.brought.isEmpty()) {
+    if (pendingRequests.isEmpty() && broughtCount == 0) {
         item {
             Box(
                 Modifier.fillMaxWidth().padding(40.dp),
@@ -1069,7 +1133,7 @@ private fun CategoryHeader(icon: String?, label: String) {
 @Composable
 private fun ItemRequestRow(
     item: ItemRequest,
-    isOwner: Boolean,
+    canDelete: Boolean,
     onFulfill: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1120,7 +1184,7 @@ private fun ItemRequestRow(
                 Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        if (isOwner) {
+        if (canDelete) {
             TextButton(
                 onClick = onDelete,
                 contentPadding = PaddingValues(0.dp)

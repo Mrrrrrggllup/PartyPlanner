@@ -14,8 +14,9 @@ class ItemRepositoryImpl(private val api: ItemApi) : ItemRepository {
     override suspend fun getItems(eventId: Int): Result<EventItems> = runCatching {
         val response = api.getItems(eventId)
         EventItems(
-            requests = response.requests.map { it.toDomain() },
-            brought  = response.brought.map { it.toDomain() },
+            requests      = response.requests.map { it.toDomain() },
+            brought       = response.brought.map { it.toDomain() },
+            newItemsCount = response.newItemsCount,
         )
     }
 
@@ -39,7 +40,11 @@ class ItemRepositoryImpl(private val api: ItemApi) : ItemRepository {
         api.deleteItemBrought(eventId, broughtId)
     }
 
+    override suspend fun markItemsSeen(eventId: Int): Result<Unit> = runCatching {
+        api.markItemsSeen(eventId)
+    }
+
     private fun CategoryResponse.toDomain()     = ItemCategory(id, label, icon)
-    private fun ItemRequestResponse.toDomain()  = ItemRequest(id, label, quantity, isFulfilled, assignedToName, categoryId, categoryLabel, categoryIcon)
+    private fun ItemRequestResponse.toDomain()  = ItemRequest(id, label, quantity, isFulfilled, assignedToName, requestedById, categoryId, categoryLabel, categoryIcon)
     private fun ItemBroughtResponse.toDomain()  = ItemBrought(id, label, quantity, userId, userName, categoryId, categoryLabel, categoryIcon)
 }

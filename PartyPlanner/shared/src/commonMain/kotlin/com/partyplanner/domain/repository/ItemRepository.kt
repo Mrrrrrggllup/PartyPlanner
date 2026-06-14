@@ -13,4 +13,5 @@ interface ItemRepository {
     suspend fun deleteItemRequest(eventId: Int, requestId: Int): Result<Unit>
     suspend fun addItemBrought(eventId: Int, label: String, quantity: Int, categoryId: Int?): Result<ItemBrought>
     suspend fun deleteItemBrought(eventId: Int, broughtId: Int): Result<Unit>
+    suspend fun markItemsSeen(eventId: Int): Result<Unit>
 }

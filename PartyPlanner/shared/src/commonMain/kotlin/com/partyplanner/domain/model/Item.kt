@@ -6,6 +6,7 @@ data class ItemRequest(
     val quantity: Int,
     val isFulfilled: Boolean,
     val assignedToName: String?,
+    val requestedById: Int?,
     val categoryId: Int?,
     val categoryLabel: String?,
     val categoryIcon: String?,
@@ -25,4 +26,5 @@ data class ItemBrought(
 data class EventItems(
     val requests: List<ItemRequest>,
     val brought: List<ItemBrought>,
+    val newItemsCount: Int = 0,
 )

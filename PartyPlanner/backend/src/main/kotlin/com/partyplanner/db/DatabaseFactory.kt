@@ -24,7 +24,7 @@ object DatabaseFactory {
         transaction {
             SchemaUtils.createMissingTablesAndColumns(
                 Users, Events, Invitations,
-                ItemCategories, ItemRequests, ItemsBrought,
+                ItemCategories, ItemRequests, ItemsBrought, EventItemViews,
                 CarpoolOffers, CarpoolPassengers,
                 ChatMessages,
                 PasswordResetTokens,

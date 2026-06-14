@@ -56,6 +56,7 @@ class EventRepositoryImpl(private val eventApi: EventApi) : EventRepository {
         startDate   = startDate,
         endDate     = endDate,
         ownerId     = ownerId,
+        ownerName   = ownerName,
         inviteToken = inviteToken,
         createdAt   = createdAt,
         currentUserInvitationStatus = currentUserInvitationStatus?.let {

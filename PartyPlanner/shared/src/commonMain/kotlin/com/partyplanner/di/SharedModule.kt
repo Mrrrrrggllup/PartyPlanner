@@ -48,6 +48,7 @@ import com.partyplanner.domain.usecase.item.DeleteItemRequestUseCase
 import com.partyplanner.domain.usecase.item.FulfillItemRequestUseCase
 import com.partyplanner.domain.usecase.item.GetCategoriesUseCase
 import com.partyplanner.domain.usecase.item.GetItemsUseCase
+import com.partyplanner.domain.usecase.item.MarkItemsSeenUseCase
 import com.partyplanner.util.AuthEventBus
 import com.partyplanner.util.BASE_URL
 import io.ktor.client.*
@@ -123,6 +124,7 @@ val sharedModule = module {
     factory { DeleteItemRequestUseCase(get()) }
     factory { AddItemBroughtUseCase(get()) }
     factory { DeleteItemBroughtUseCase(get()) }
+    factory { MarkItemsSeenUseCase(get()) }
 
     single { CarpoolApi(get(), BASE_URL, get()) }
     single<CarpoolRepository> { CarpoolRepositoryImpl(get()) }

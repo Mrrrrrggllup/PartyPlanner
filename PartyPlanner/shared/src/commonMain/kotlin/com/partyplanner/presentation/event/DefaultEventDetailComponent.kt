@@ -25,6 +25,7 @@ import com.partyplanner.domain.usecase.item.DeleteItemRequestUseCase
 import com.partyplanner.domain.usecase.item.FulfillItemRequestUseCase
 import com.partyplanner.domain.usecase.item.GetCategoriesUseCase
 import com.partyplanner.domain.usecase.item.GetItemsUseCase
+import com.partyplanner.domain.usecase.item.MarkItemsSeenUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -60,6 +61,7 @@ class DefaultEventDetailComponent(
     private val deleteItemRequestUseCase: DeleteItemRequestUseCase by inject()
     private val addItemBroughtUseCase: AddItemBroughtUseCase by inject()
     private val deleteItemBroughtUseCase: DeleteItemBroughtUseCase by inject()
+    private val markItemsSeenUseCase: MarkItemsSeenUseCase by inject()
     private val getCarpoolOffersUseCase: GetCarpoolOffersUseCase by inject()
     private val createCarpoolOfferUseCase: CreateCarpoolOfferUseCase by inject()
     private val updateCarpoolOfferUseCase: UpdateCarpoolOfferUseCase by inject()
@@ -225,6 +227,11 @@ class DefaultEventDetailComponent(
                 updateSuccess { copy(items = items.copy(brought = items.brought.filter { it.id != broughtId })) }
             }
         }
+    }
+
+    override fun onItemsRead() {
+        updateSuccess { copy(items = items.copy(newItemsCount = 0)) }
+        scope.launch { markItemsSeenUseCase(eventId) }
     }
 
     override fun onCreateCarpoolOffer(seats: Int, departurePoint: String?, notes: String?) {

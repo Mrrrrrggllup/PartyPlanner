@@ -12,6 +12,7 @@ interface EventDetailComponent {
     fun onDeleteItemRequest(requestId: Int)
     fun onAddItemBrought(label: String, quantity: Int, categoryId: Int?)
     fun onDeleteItemBrought(broughtId: Int)
+    fun onItemsRead()
     fun onCreateCarpoolOffer(seats: Int, departurePoint: String?, notes: String?)
     fun onUpdateCarpoolOffer(offerId: Int, seats: Int, departurePoint: String?, notes: String?)
     fun onDeleteCarpoolOffer(offerId: Int)
