@@ -21,10 +21,7 @@ import com.partyplanner.presentation.event.EditEventComponent
 import com.partyplanner.presentation.event.EditEventState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import partyplanner.composeapp.generated.resources.Res
 import partyplanner.composeapp.generated.resources.*
@@ -284,16 +281,4 @@ private fun EditEventHeader(onBack: () -> Unit) {
             modifier = Modifier.align(Alignment.Center)
         )
     }
-}
-
-@Suppress("DEPRECATION")
-@OptIn(ExperimentalMaterial3Api::class)
-private fun millisToDateTime(millis: Long?, timeState: TimePickerState): LocalDateTime? {
-    millis ?: return null
-    val localDate = Instant.fromEpochMilliseconds(millis)
-        .toLocalDateTime(TimeZone.UTC)
-    return LocalDateTime(
-        localDate.year, localDate.monthNumber, localDate.dayOfMonth,
-        timeState.hour, timeState.minute
-    )
 }

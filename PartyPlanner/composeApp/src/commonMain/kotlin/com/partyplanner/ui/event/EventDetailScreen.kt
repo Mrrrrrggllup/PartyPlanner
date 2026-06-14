@@ -39,6 +39,7 @@ import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
 import kotlinx.coroutines.launch
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 
 private enum class DetailTab(val icon: String) {

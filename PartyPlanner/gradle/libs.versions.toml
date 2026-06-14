@@ -23,6 +23,7 @@ kotlinx-datetime = "0.6.1"
 kotlinx-serialization = "1.7.3"
 ktor = "3.0.3"
 logback = "1.5.12"
+materialIconsCore = "1.7.3"
 material3 = "1.10.0-alpha05"
 postgresql = "42.7.4"
 sqldelight = "2.0.2"
@@ -49,6 +50,7 @@ postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" 
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+compose-materialIconsCore = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "materialIconsCore" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
 compose-uiTooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
