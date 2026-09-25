@@ -82,7 +82,8 @@ fun EventDetailScreen(component: EventDetailComponent) {
                 Text(s.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             }
             is EventDetailState.Success -> {
-                Column(modifier = Modifier.fillMaxSize()) {
+                val imeVisible = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
+                Column(modifier = Modifier.fillMaxSize().imePadding()) {
                     DetailHero(
                         title        = s.event.title,
                         subtitle     = buildSubtitle(s.event),
@@ -281,23 +282,25 @@ fun EventDetailScreen(component: EventDetailComponent) {
                         }
                     }
 
-                    DetailTabBar(
-                        selected = selectedTab,
-                        onSelect = { tab ->
-                            if (tab == DetailTab.CHAT) component.onChatRead()
-                            else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
-                            if (tab == DetailTab.ITEMS) component.onItemsRead()
-                            if (tab == DetailTab.COVOIT) component.onCarpoolRead()
-                            selectedTab = tab
-                        },
-                        modifier = Modifier.navigationBarsPadding(),
-                        badgeCounts = mapOf(
-                            DetailTab.CHAT   to s.unreadChatCount,
-                            DetailTab.ITEMS  to s.items.newItemsCount,
-                            DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
-                            DetailTab.COVOIT to s.carpoolOffers.newCarpoolCount,
-                        ),
-                    )
+                    if (!(selectedTab == DetailTab.CHAT && imeVisible)) {
+                        DetailTabBar(
+                            selected = selectedTab,
+                            onSelect = { tab ->
+                                if (tab == DetailTab.CHAT) component.onChatRead()
+                                else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
+                                if (tab == DetailTab.ITEMS) component.onItemsRead()
+                                if (tab == DetailTab.COVOIT) component.onCarpoolRead()
+                                selectedTab = tab
+                            },
+                            modifier = Modifier.navigationBarsPadding(),
+                            badgeCounts = mapOf(
+                                DetailTab.CHAT   to s.unreadChatCount,
+                                DetailTab.ITEMS  to s.items.newItemsCount,
+                                DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
+                                DetailTab.COVOIT to s.carpoolOffers.newCarpoolCount,
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -1678,7 +1681,7 @@ private fun ChatTabLayout(
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    Column(modifier = modifier.imePadding()) {
+    Column(modifier = modifier) {
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f),
@@ -1745,7 +1748,6 @@ private fun ChatTabLayout(
                 )
             }
         }
-        Spacer(Modifier.navigationBarsPadding())
     }
 }
 

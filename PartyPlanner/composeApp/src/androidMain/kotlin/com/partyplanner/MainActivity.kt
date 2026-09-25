@@ -1,9 +1,14 @@
 package com.partyplanner
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.retainedComponent
 import com.google.firebase.messaging.FirebaseMessaging
@@ -45,6 +50,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             App(root)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
         }
 
         // Register FCM token — fire-and-forget, silently skipped if not logged in

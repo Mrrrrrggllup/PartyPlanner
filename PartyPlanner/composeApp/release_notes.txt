@@ -1,10 +1,5 @@
-v1.3 — Nouveautés
+v1.6 — Nouveautés
 
-- Édition d'événement et d'offre de covoiturage
-- Réinitialisation de mot de passe par email
-- Pull-to-refresh sur la page événement
-- Tuiles cliquables pour naviguer entre les onglets
-- Lien d'invitation désormais cliquable dans SMS/WhatsApp
-- Badges sur les onglets (messages non lus, items manquants...)
-- Onglet "Items" renommé "Courses"
-- Reconnexion automatique au chat si coupure réseau
+- Nouvelle icône de l'application
+- Fix : positionnement du chat (le clavier recouvrait la zone de saisie)
+- L'app demande maintenant l'autorisation pour envoyer des notifications
