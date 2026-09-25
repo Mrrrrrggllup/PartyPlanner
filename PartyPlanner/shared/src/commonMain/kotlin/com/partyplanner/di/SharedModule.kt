@@ -7,6 +7,7 @@ import com.partyplanner.data.remote.CarpoolApi
 import com.partyplanner.data.remote.EventApi
 import com.partyplanner.data.remote.InvitationApi
 import com.partyplanner.data.remote.ItemApi
+import com.partyplanner.data.remote.UserApi
 import com.partyplanner.data.repository.AuthRepositoryImpl
 import com.partyplanner.data.repository.CarpoolRepositoryImpl
 import com.partyplanner.data.repository.ChatRepositoryImpl
@@ -87,6 +88,7 @@ val sharedModule = module {
     }
 
     single { AuthApi(get(), BASE_URL) }
+    single { UserApi(get(), BASE_URL, get()) }
     single { SessionStorage(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
 

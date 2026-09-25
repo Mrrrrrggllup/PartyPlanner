@@ -6,12 +6,14 @@ import com.partyplanner.routes.chatRoutes
 import com.partyplanner.routes.eventRoutes
 import com.partyplanner.routes.invitationRoutes
 import com.partyplanner.routes.itemRoutes
+import com.partyplanner.routes.userRoutes
 import com.partyplanner.services.AuthService
 import com.partyplanner.services.CarpoolService
 import com.partyplanner.services.ChatService
 import com.partyplanner.services.EventService
 import com.partyplanner.services.InvitationService
 import com.partyplanner.services.ItemService
+import com.partyplanner.services.NotificationService
 import com.partyplanner.services.PasswordResetService
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -26,6 +28,7 @@ fun Application.configureRouting() {
     val itemService          = getKoin().get<ItemService>()
     val carpoolService       = getKoin().get<CarpoolService>()
     val chatService          = getKoin().get<ChatService>()
+    val notificationService  = getKoin().get<NotificationService>()
 
     routing {
         get("/health") {
@@ -62,10 +65,11 @@ fun Application.configureRouting() {
             )
         }
         authRoutes(authService, passwordResetService)
+        userRoutes(notificationService)
         eventRoutes(eventService)
         invitationRoutes(invitationService)
         itemRoutes(itemService)
         carpoolRoutes(carpoolService)
-        chatRoutes(chatService, authService)
+        chatRoutes(chatService, authService, notificationService)
     }
 }

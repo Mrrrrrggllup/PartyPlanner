@@ -12,7 +12,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 
-class CarpoolService {
+class CarpoolService(private val notificationService: NotificationService) {
 
     private fun checkAccess(eventId: Int, userId: Int) {
         val event = EventEntity.findById(eventId) ?: error("Event not found")
@@ -68,7 +68,7 @@ class CarpoolService {
 
     suspend fun createOffer(eventId: Int, userId: Int, dto: CreateCarpoolOfferDto): CarpoolOfferResponse =
         withContext(Dispatchers.IO) {
-            transaction {
+            val result = transaction {
                 checkAccess(eventId, userId)
                 require(dto.seatsAvailable >= 1) { "Au moins 1 place requise" }
                 val event  = EventEntity.findById(eventId)!!
@@ -83,6 +83,8 @@ class CarpoolService {
                     createdAt      = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             }
+            notificationService.notifyParticipants(eventId, userId)
+            result
         }
 
     suspend fun updateOffer(eventId: Int, offerId: Int, userId: Int, dto: UpdateCarpoolOfferDto): CarpoolOfferResponse =
@@ -115,7 +117,7 @@ class CarpoolService {
 
     suspend fun joinOffer(eventId: Int, offerId: Int, userId: Int, dto: JoinCarpoolDto): CarpoolOfferResponse =
         withContext(Dispatchers.IO) {
-            transaction {
+            val result = transaction {
                 checkAccess(eventId, userId)
                 val offer = CarpoolOfferEntity.findById(offerId) ?: error("Offre introuvable")
                 require(offer.event.id.value == eventId) { "Offre introuvable" }
@@ -153,11 +155,14 @@ class CarpoolService {
                 }
                 offer.toResponse()
             }
+            // Notify the driver that someone joined their offer
+            notificationService.notifyUsers(listOf(result.driverId), userId)
+            result
         }
 
     suspend fun leaveOffer(eventId: Int, offerId: Int, userId: Int): CarpoolOfferResponse =
         withContext(Dispatchers.IO) {
-            transaction {
+            val result = transaction {
                 val offer = CarpoolOfferEntity.findById(offerId) ?: error("Offre introuvable")
                 require(offer.event.id.value == eventId) { "Offre introuvable" }
                 val entry = CarpoolPassengerEntity.find {
@@ -167,6 +172,9 @@ class CarpoolService {
                 entry.status = CarpoolPassengerStatus.CANCELLED
                 offer.toResponse()
             }
+            // Notify the driver that someone left their offer
+            notificationService.notifyUsers(listOf(result.driverId), userId)
+            result
         }
 
     private fun CarpoolOfferEntity.toResponse(): CarpoolOfferResponse {

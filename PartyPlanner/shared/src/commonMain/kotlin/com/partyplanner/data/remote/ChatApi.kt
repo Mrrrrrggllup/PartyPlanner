@@ -14,6 +14,7 @@ class ChatApi(
     private val baseUrl: String,
     private val sessionStorage: SessionStorage,
 ) {
+    @Volatile
     private var currentSession: DefaultClientWebSocketSession? = null
 
     private val wsJson = Json { ignoreUnknownKeys = true; isLenient = true }

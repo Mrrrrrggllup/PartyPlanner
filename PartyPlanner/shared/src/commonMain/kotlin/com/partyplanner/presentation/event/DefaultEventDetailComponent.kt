@@ -150,7 +150,8 @@ class DefaultEventDetailComponent(
         scope.launch {
             chatRepository.messages.collect { message ->
                 updateSuccess {
-                    copy(
+                    if (chatMessages.any { it.id == message.id }) this
+                    else copy(
                         chatMessages    = chatMessages + message,
                         unreadChatCount = if (!isChatTabActive) unreadChatCount + 1 else 0,
                     )

@@ -12,6 +12,7 @@ object Users : IntIdTable("users") {
     val displayName = varchar("display_name", 100)
     val passwordHash = varchar("password_hash", 255)
     val createdAt = datetime("created_at")
+    val notificationPending = bool("notification_pending").default(false)
 }
 
 class UserEntity(id: EntityID<Int>) : IntEntity(id) {
@@ -22,4 +23,5 @@ class UserEntity(id: EntityID<Int>) : IntEntity(id) {
     var displayName by Users.displayName
     var passwordHash by Users.passwordHash
     var createdAt by Users.createdAt
+    var notificationPending by Users.notificationPending
 }

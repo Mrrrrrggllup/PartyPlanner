@@ -1,8 +1,6 @@
 package com.partyplanner.db
 
 import com.partyplanner.db.tables.*
-import com.partyplanner.db.tables.CarpoolOffers
-import com.partyplanner.db.tables.CarpoolPassengers
 import io.ktor.server.config.*
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -28,6 +26,7 @@ object DatabaseFactory {
                 CarpoolOffers, CarpoolPassengers, EventCarpoolViews,
                 ChatMessages,
                 PasswordResetTokens,
+                DeviceTokens,
             )
             seedCategories()
         }

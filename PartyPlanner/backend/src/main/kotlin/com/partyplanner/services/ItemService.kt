@@ -14,7 +14,7 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.transactions.transaction
 
-class ItemService {
+class ItemService(private val notificationService: NotificationService) {
 
     // ── Access helpers ────────────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ class ItemService {
     /** Any participant (owner or invited) can suggest an item. */
     suspend fun addItemRequest(eventId: Int, userId: Int, dto: AddItemRequestDto): ItemRequestResponse =
         withContext(Dispatchers.IO) {
-            transaction {
+            val result = transaction {
                 checkAccess(eventId, userId)
                 val event    = EventEntity.findById(eventId)!!
                 val category = dto.categoryId?.let { ItemCategoryEntity.findById(it) }
@@ -110,6 +110,8 @@ class ItemService {
                     createdAt     = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             }
+            notificationService.notifyParticipants(eventId, userId)
+            result
         }
 
     /** Toggle fulfilled. Any participant can volunteer; only assignee or owner can un-volunteer. */
@@ -150,7 +152,7 @@ class ItemService {
 
     suspend fun addItemBrought(eventId: Int, userId: Int, dto: AddItemBroughtDto): ItemBroughtResponse =
         withContext(Dispatchers.IO) {
-            transaction {
+            val result = transaction {
                 checkAccess(eventId, userId)
                 val event    = EventEntity.findById(eventId)!!
                 val user     = UserEntity.findById(userId)!!
@@ -164,6 +166,8 @@ class ItemService {
                     createdAt     = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             }
+            notificationService.notifyParticipants(eventId, userId)
+            result
         }
 
     /** Owner can delete any; author can delete their own. */

@@ -22,7 +22,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
-class ChatService {
+class ChatService(private val notificationService: NotificationService) {
 
     // eventId -> active WS sessions
     private val rooms = ConcurrentHashMap<Int, MutableSet<DefaultWebSocketSession>>()
@@ -66,16 +66,18 @@ class ChatService {
 
     suspend fun saveMessage(eventId: Int, senderId: Int, content: String): ChatMessageResponse =
         withContext(Dispatchers.IO) {
-            transaction {
-                val event  = EventEntity.findById(eventId)  ?: error("Event not found")
-                val sender = UserEntity.findById(senderId)   ?: error("User not found")
+            val result = transaction {
+                val event  = EventEntity.findById(eventId) ?: error("Event not found")
+                val sender = UserEntity.findById(senderId)  ?: error("User not found")
                 ChatMessageEntity.new {
-                    this.event    = event
-                    this.sender   = sender
-                    this.content  = content
+                    this.event     = event
+                    this.sender    = sender
+                    this.content   = content
                     this.createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             }
+            notificationService.notifyParticipants(eventId, senderId)
+            result
         }
 
     private fun ChatMessageEntity.toResponse() = ChatMessageResponse(

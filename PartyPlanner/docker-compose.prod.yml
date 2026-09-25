@@ -26,6 +26,10 @@ services:
       DATABASE_USER: ${DB_USER}
       DATABASE_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      FCM_SERVICE_ACCOUNT_PATH: /app/serviceAccountKey.json
+    volumes:
+      - /opt/partyplanner/serviceAccountKey.json:/app/serviceAccountKey.json:ro
     depends_on:
       db:
         condition: service_healthy

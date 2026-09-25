@@ -31,6 +31,8 @@ dependencies {
     implementation(libs.postgresql)
     // Security
     implementation(libs.bcrypt)
+    // Push notifications
+    implementation(libs.firebase.admin)
     // Logging
     implementation(libs.logback)
     // DI
@@ -40,6 +42,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.datetime)
     // Tests
-    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlin.testJunit)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.h2)
 }

@@ -21,7 +21,7 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.transactions.transaction
 
-class InvitationService {
+class InvitationService(private val notificationService: NotificationService) {
 
     suspend fun getInviteInfo(token: String, userId: Int): InviteInfoResponse = withContext(Dispatchers.IO) {
         transaction {
@@ -48,7 +48,7 @@ class InvitationService {
         val status = runCatching { InvitationStatus.valueOf(statusStr) }.getOrNull()
             ?: error("Statut invalide : $statusStr")
 
-        transaction {
+        val (result, ownerId) = transaction {
             val event = EventEntity.find { Events.inviteToken eq token }.firstOrNull()
                 ?: error("Invitation introuvable")
             require(event.owner.id.value != userId) { "L'organisateur ne peut pas s'inviter" }
@@ -77,17 +77,26 @@ class InvitationService {
                 }
             }
 
-            InviteInfoResponse(
-                eventId       = event.id.value,
-                title         = event.title,
-                startDate     = event.startDate,
-                endDate       = event.endDate,
-                location      = event.location,
-                organizerName = event.owner.displayName,
-                isOwner       = false,
-                currentStatus = status.name,
+            Pair(
+                InviteInfoResponse(
+                    eventId       = event.id.value,
+                    title         = event.title,
+                    startDate     = event.startDate,
+                    endDate       = event.endDate,
+                    location      = event.location,
+                    organizerName = event.owner.displayName,
+                    isOwner       = false,
+                    currentStatus = status.name,
+                ),
+                event.owner.id.value,
             )
         }
+
+        // Notify the event owner when someone accepts or maybe-s
+        if (status == InvitationStatus.ACCEPTED || status == InvitationStatus.MAYBE) {
+            notificationService.notifyUsers(listOf(ownerId), userId)
+        }
+        result
     }
 
     suspend fun getEventInvitations(eventId: Int, userId: Int): List<InvitationResponse> = withContext(Dispatchers.IO) {
@@ -123,7 +132,7 @@ class InvitationService {
     }
 
     suspend fun inviteByUserId(eventId: Int, ownerId: Int, targetUserId: Int): InvitationResponse = withContext(Dispatchers.IO) {
-        transaction {
+        val result = transaction {
             val event = EventEntity.findById(eventId) ?: error("Événement introuvable")
             require(event.owner.id.value == ownerId) { "Accès refusé" }
             require(targetUserId != ownerId) { "Vous ne pouvez pas vous inviter vous-même" }
@@ -141,10 +150,12 @@ class InvitationService {
                 this.status = InvitationStatus.PENDING
             }.toResponse()
         }
+        notificationService.notifyUsers(listOf(result.userId), ownerId)
+        result
     }
 
     suspend fun inviteByEmail(eventId: Int, ownerId: Int, email: String): InvitationResponse = withContext(Dispatchers.IO) {
-        transaction {
+        val result = transaction {
             val event = EventEntity.findById(eventId) ?: error("Événement introuvable")
             require(event.owner.id.value == ownerId) { "Accès refusé" }
 
@@ -165,6 +176,8 @@ class InvitationService {
                 this.status = InvitationStatus.PENDING
             }.toResponse()
         }
+        notificationService.notifyUsers(listOf(result.userId), ownerId)
+        result
     }
 
     private fun InvitationEntity.toResponse() = InvitationResponse(

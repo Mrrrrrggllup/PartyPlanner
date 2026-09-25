@@ -15,6 +15,8 @@ import com.partyplanner.db.tables.ItemsBrought
 import com.partyplanner.db.tables.CarpoolOffers
 import com.partyplanner.db.tables.CarpoolOfferEntity
 import com.partyplanner.db.tables.CarpoolPassengers
+import com.partyplanner.db.tables.EventCarpoolViews
+import com.partyplanner.db.tables.EventItemViews
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -107,6 +109,8 @@ class EventService {
             ChatMessages.deleteWhere { ChatMessages.eventId eq id }
             ItemsBrought.deleteWhere { ItemsBrought.eventId eq id }
             ItemRequests.deleteWhere { ItemRequests.eventId eq id }
+            EventItemViews.deleteWhere { EventItemViews.eventId eq id }
+            EventCarpoolViews.deleteWhere { EventCarpoolViews.eventId eq id }
             Invitations.deleteWhere { Invitations.eventId eq id }
 
             event.delete()

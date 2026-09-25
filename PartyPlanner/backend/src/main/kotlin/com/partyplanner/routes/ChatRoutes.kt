@@ -3,6 +3,7 @@ package com.partyplanner.routes
 import com.partyplanner.dto.SendChatMessageDto
 import com.partyplanner.services.AuthService
 import com.partyplanner.services.ChatService
+import com.partyplanner.services.NotificationService
 import io.ktor.server.routing.Route
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.CloseReason
@@ -14,7 +15,7 @@ import kotlinx.serialization.json.Json
 
 private val wsJson = Json { isLenient = true; ignoreUnknownKeys = true }
 
-fun Route.chatRoutes(chatService: ChatService, authService: AuthService) {
+fun Route.chatRoutes(chatService: ChatService, authService: AuthService, notificationService: NotificationService) {
     webSocket("/events/{id}/chat") {
         val eventId = call.parameters["id"]?.toIntOrNull()
             ?: return@webSocket close(
@@ -45,6 +46,7 @@ fun Route.chatRoutes(chatService: ChatService, authService: AuthService) {
             return@webSocket
         }
 
+        notificationService.touch(userId)
         chatService.addSession(eventId, this)
         try {
             // Send history on connect

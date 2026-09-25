@@ -1678,7 +1678,7 @@ private fun ChatTabLayout(
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    Column(modifier = modifier) {
+    Column(modifier = modifier.imePadding()) {
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f),
@@ -1745,7 +1745,7 @@ private fun ChatTabLayout(
                 )
             }
         }
-        Spacer(Modifier.navigationBarsPadding().height(72.dp))
+        Spacer(Modifier.navigationBarsPadding())
     }
 }
 
