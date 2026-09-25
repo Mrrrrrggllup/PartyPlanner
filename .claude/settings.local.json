@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./gradlew :backend:run)"
+      "Bash(./gradlew :backend:run)",
+      "Bash(xargs cat)",
+      "Bash(git -C /c/Users/antoi/AndroidStudioProjects/PartyPlanner log --oneline -10 -- PartyPlanner/composeApp/src/commonMain/kotlin/com/partyplanner/ui/event/EventDetailScreen.kt)",
+      "Bash(./gradlew.bat :backend:compileKotlin --no-configuration-cache)",
+      "Bash(./gradlew.bat :shared:compileDebugKotlinAndroid :composeApp:compileDebugKotlinAndroid --no-configuration-cache)",
+      "Bash(./gradlew.bat :composeApp:compileDebugKotlinAndroid --no-configuration-cache)",
+      "Bash(./gradlew.bat :backend:compileKotlin :shared:compileDebugKotlinAndroid :composeApp:compileDebugKotlinAndroid --no-configuration-cache -q)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh run *)"
     ]
   }
 }
