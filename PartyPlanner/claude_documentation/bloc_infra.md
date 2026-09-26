@@ -36,6 +36,7 @@ RootComponent (Auth | Main | ForgotPassword | ResetPassword)
 |---|---|
 | `partyplanner://invite/{token}` | InvitationScreen |
 | `partyplanner://reset-password?token=...` | ResetPasswordScreen |
+| `partyplanner://event/{eventId}` | EventDetailScreen (via notification FCM) |
 
 ---
 
@@ -85,7 +86,9 @@ Un seul `HttpClient` partagé configuré dans `SharedModule`.
 HttpClient {
     install(ContentNegotiation) { json() }
     install(Auth) { bearer { /* token depuis SessionStorage */ } }
-    install(WebSockets)
+    install(WebSockets) {
+        pingIntervalMillis = 30_000L  // détecte les connexions mortes côté client
+    }
 }
 ```
 
@@ -110,6 +113,20 @@ HttpClient {
 - `shared/util/PlatformConfig.kt` — déclaration expect
 - `shared/src/androidMain/util/PlatformConfig.android.kt`
 - `shared/src/iosMain/util/PlatformConfig.ios.kt`
+
+---
+
+## Icônes Android
+
+### Icône launcher (adaptive icon)
+- `mipmap-anydpi-v26/ic_launcher.xml` + `ic_launcher_round.xml` → référencent les vecteurs
+- `drawable/ic_launcher_background.xml` — fond navy `#1A1A2E` (108×108dp)
+- `drawable-v24/ic_launcher_foreground.xml` — monogramme "P" doré (`#C9A84C`) + confettis colorés
+- Sur Android < 8 : PNGs densités `mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}` utilisés
+
+### Icône de notification
+- `drawable/ic_notification.xml` — "P" monochromatic blanc 24dp
+- Référencée dans `PartyPlannerMessagingService` (`setSmallIcon`) et dans `AndroidManifest.xml` (`default_notification_icon`) pour les notifications en arrière-plan gérées par le système
 
 ---
 

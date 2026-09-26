@@ -36,6 +36,10 @@ class InvitationRepositoryImpl(private val api: InvitationApi) : InvitationRepos
         api.getInviteSuggestions(eventId).map { it.toDomain() }
     }
 
+    override suspend fun removeGuest(eventId: Int, invitationId: Int): Result<Unit> = runCatching {
+        api.removeGuest(eventId, invitationId)
+    }
+
     private fun UserSuggestionResponse.toDomain() = UserSuggestion(id = id, displayName = displayName)
 
     private fun InviteInfoResponse.toDomain() = InviteInfo(

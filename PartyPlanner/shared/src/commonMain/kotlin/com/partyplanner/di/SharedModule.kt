@@ -42,6 +42,7 @@ import com.partyplanner.domain.usecase.invitation.GetInviteSuggestionsUseCase
 import com.partyplanner.domain.usecase.invitation.GetInviteInfoUseCase
 import com.partyplanner.domain.usecase.invitation.InviteByEmailUseCase
 import com.partyplanner.domain.usecase.invitation.InviteByUserIdUseCase
+import com.partyplanner.domain.usecase.invitation.RemoveGuestUseCase
 import com.partyplanner.domain.usecase.invitation.RsvpToInvitationUseCase
 import com.partyplanner.domain.usecase.item.AddItemBroughtUseCase
 import com.partyplanner.domain.usecase.item.AddItemRequestUseCase
@@ -51,6 +52,12 @@ import com.partyplanner.domain.usecase.item.FulfillItemRequestUseCase
 import com.partyplanner.domain.usecase.item.GetCategoriesUseCase
 import com.partyplanner.domain.usecase.item.GetItemsUseCase
 import com.partyplanner.domain.usecase.item.MarkItemsSeenUseCase
+import com.partyplanner.data.remote.ContributionApi
+import com.partyplanner.data.repository.ContributionRepositoryImpl
+import com.partyplanner.domain.repository.ContributionRepository
+import com.partyplanner.domain.usecase.contribution.AddContributionUseCase
+import com.partyplanner.domain.usecase.contribution.DeleteContributionUseCase
+import com.partyplanner.domain.usecase.contribution.GetContributionsUseCase
 import com.partyplanner.util.AuthEventBus
 import com.partyplanner.util.BASE_URL
 import io.ktor.client.*
@@ -118,6 +125,7 @@ val sharedModule = module {
     factory { InviteByEmailUseCase(get()) }
     factory { InviteByUserIdUseCase(get()) }
     factory { GetInviteSuggestionsUseCase(get()) }
+    factory { RemoveGuestUseCase(get()) }
 
     single { ItemApi(get(), BASE_URL, get()) }
     single<ItemRepository> { ItemRepositoryImpl(get()) }
@@ -136,6 +144,12 @@ val sharedModule = module {
 
     factory { ChatApi(get(), BASE_URL, get()) }
     factory<ChatRepository> { ChatRepositoryImpl(get()) }
+
+    single { ContributionApi(get(), BASE_URL, get()) }
+    single<ContributionRepository> { ContributionRepositoryImpl(get()) }
+    factory { GetContributionsUseCase(get()) }
+    factory { AddContributionUseCase(get()) }
+    factory { DeleteContributionUseCase(get()) }
 
     factory { GetCarpoolOffersUseCase(get()) }
     factory { CreateCarpoolOfferUseCase(get()) }

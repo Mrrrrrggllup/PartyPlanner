@@ -3,6 +3,7 @@ package com.partyplanner.plugins
 import com.partyplanner.routes.authRoutes
 import com.partyplanner.routes.carpoolRoutes
 import com.partyplanner.routes.chatRoutes
+import com.partyplanner.routes.contributionRoutes
 import com.partyplanner.routes.eventRoutes
 import com.partyplanner.routes.invitationRoutes
 import com.partyplanner.routes.itemRoutes
@@ -10,6 +11,7 @@ import com.partyplanner.routes.userRoutes
 import com.partyplanner.services.AuthService
 import com.partyplanner.services.CarpoolService
 import com.partyplanner.services.ChatService
+import com.partyplanner.services.ContributionService
 import com.partyplanner.services.EventService
 import com.partyplanner.services.InvitationService
 import com.partyplanner.services.ItemService
@@ -29,6 +31,7 @@ fun Application.configureRouting() {
     val carpoolService       = getKoin().get<CarpoolService>()
     val chatService          = getKoin().get<ChatService>()
     val notificationService  = getKoin().get<NotificationService>()
+    val contributionService  = getKoin().get<ContributionService>()
 
     routing {
         get("/health") {
@@ -71,5 +74,6 @@ fun Application.configureRouting() {
         itemRoutes(itemService)
         carpoolRoutes(carpoolService)
         chatRoutes(chatService, authService, notificationService)
+        contributionRoutes(contributionService)
     }
 }

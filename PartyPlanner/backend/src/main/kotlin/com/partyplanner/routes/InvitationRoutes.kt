@@ -71,6 +71,17 @@ fun Route.invitationRoutes(invitationService: InvitationService) {
                     call.respond(status, mapOf("error" to it.message))
                 }
         }
+        delete("/events/{id}/invitations/{invitationId}") {
+            val eventId      = call.parameters["id"]!!.toInt()
+            val invitationId = call.parameters["invitationId"]!!.toInt()
+            runCatching { invitationService.removeGuest(eventId, invitationId, call.invUserId()) }
+                .onSuccess { call.respond(HttpStatusCode.NoContent) }
+                .onFailure {
+                    val status = if (it.message?.contains("Accès refusé") == true) HttpStatusCode.Forbidden
+                                 else HttpStatusCode.BadRequest
+                    call.respond(status, mapOf("error" to it.message))
+                }
+        }
     }
 }
 

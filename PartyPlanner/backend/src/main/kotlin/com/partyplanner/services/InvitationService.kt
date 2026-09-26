@@ -1,10 +1,18 @@
 package com.partyplanner.services
 
+import com.partyplanner.db.tables.CarpoolOfferEntity
+import com.partyplanner.db.tables.CarpoolOffers
+import com.partyplanner.db.tables.CarpoolPassengerEntity
+import com.partyplanner.db.tables.CarpoolPassengers
+import com.partyplanner.db.tables.CarpoolPassengerStatus
+import com.partyplanner.db.tables.Contributions
 import com.partyplanner.db.tables.EventEntity
 import com.partyplanner.db.tables.Events
 import com.partyplanner.db.tables.InvitationEntity
 import com.partyplanner.db.tables.InvitationStatus
 import com.partyplanner.db.tables.Invitations
+import com.partyplanner.db.tables.ItemRequestEntity
+import com.partyplanner.db.tables.ItemRequests
 import com.partyplanner.db.tables.ItemsBrought
 import com.partyplanner.db.tables.UserEntity
 import com.partyplanner.db.tables.Users
@@ -17,8 +25,10 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class InvitationService(private val notificationService: NotificationService) {
@@ -74,6 +84,10 @@ class InvitationService(private val notificationService: NotificationService) {
             if (status == InvitationStatus.DECLINED) {
                 ItemsBrought.deleteWhere {
                     (ItemsBrought.eventId eq event.id) and (ItemsBrought.userId eq user.id)
+                }
+                Contributions.deleteWhere {
+                    (Contributions.eventId eq event.id) and
+                    ((Contributions.addedById eq user.id) or (Contributions.linkedUserId eq user.id))
                 }
             }
 
@@ -178,6 +192,56 @@ class InvitationService(private val notificationService: NotificationService) {
         }
         notificationService.notifyUsers(listOf(result.userId), ownerId, eventId)
         result
+    }
+
+    suspend fun removeGuest(eventId: Int, invitationId: Int, ownerId: Int): Unit = withContext(Dispatchers.IO) {
+        transaction {
+            val event = EventEntity.findById(eventId) ?: error("Événement introuvable")
+            require(event.owner.id.value == ownerId) { "Accès refusé" }
+
+            val invitation = InvitationEntity.findById(invitationId) ?: error("Invitation introuvable")
+            require(invitation.event.id.value == eventId) { "Invitation introuvable" }
+
+            val userId = invitation.user.id.value
+
+            // Remove all items brought by this user for this event
+            ItemsBrought.deleteWhere {
+                (ItemsBrought.eventId eq eventId) and (ItemsBrought.userId eq userId)
+            }
+
+            // Unmark item requests fulfilled by this user, putting them back as needed
+            ItemRequestEntity.find { ItemRequests.eventId eq event.id }
+                .filter { it.isFulfilled && it.assignedTo?.id?.value == userId }
+                .forEach { req ->
+                    req.isFulfilled = false
+                    req.assignedTo  = null
+                }
+
+            // Cancel all carpool passenger entries for this user across this event's offers
+            val offerIds = CarpoolOfferEntity.find { CarpoolOffers.eventId eq eventId }.map { it.id }
+            if (offerIds.isNotEmpty()) {
+                CarpoolPassengerEntity.find {
+                    (CarpoolPassengers.offerId inList offerIds) and
+                    (CarpoolPassengers.passengerId eq userId)
+                }.forEach { it.status = CarpoolPassengerStatus.CANCELLED }
+            }
+
+            // Delete carpool offers where this user is the driver
+            CarpoolOfferEntity.find {
+                (CarpoolOffers.eventId eq eventId) and (CarpoolOffers.driverId eq userId)
+            }.forEach { offer ->
+                CarpoolPassengerEntity.find { CarpoolPassengers.offerId eq offer.id.value }.forEach { it.delete() }
+                offer.delete()
+            }
+
+            // Delete all contributions added by or linked to this user for this event
+            Contributions.deleteWhere {
+                (Contributions.eventId eq eventId) and
+                ((Contributions.addedById eq userId) or (Contributions.linkedUserId eq userId))
+            }
+
+            invitation.delete()
+        }
     }
 
     private fun InvitationEntity.toResponse() = InvitationResponse(

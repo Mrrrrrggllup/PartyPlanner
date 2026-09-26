@@ -1,6 +1,7 @@
 package com.partyplanner.presentation.event
 
 import com.partyplanner.domain.model.ChatMessage
+import com.partyplanner.domain.model.Contribution
 import com.partyplanner.domain.model.Event
 import com.partyplanner.domain.model.EventCarpool
 import com.partyplanner.domain.model.EventItems
@@ -28,6 +29,7 @@ sealed class EventDetailState {
         val currentUserInvitationStatus: InvitationStatus? = null,
         val inviteEmailResult: InviteEmailResult? = null,
         val inviteSuggestions: List<UserSuggestion> = emptyList(),
+        val contributions: List<Contribution> = emptyList(),
         val deleteError: String? = null,
         val isRefreshing: Boolean = false,
         val unreadChatCount: Int = 0,

@@ -3,6 +3,7 @@ package com.partyplanner.di
 import com.partyplanner.services.AuthService
 import com.partyplanner.services.CarpoolService
 import com.partyplanner.services.ChatService
+import com.partyplanner.services.ContributionService
 import com.partyplanner.services.EventService
 import com.partyplanner.services.InvitationService
 import com.partyplanner.services.ItemService
@@ -28,4 +29,5 @@ fun Application.backendModule() = module {
     single { ItemService(get()) }
     single { CarpoolService(get()) }
     single { ChatService(get()) }
+    single { ContributionService() }
 }

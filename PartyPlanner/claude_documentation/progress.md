@@ -1,6 +1,6 @@
 # PartyPlanner — Suivi d'avancement
 
-_Dernière mise à jour : 2026-06-14_
+_Dernière mise à jour : 2026-09-26 (v1.7)_
 
 ---
 
@@ -149,15 +149,15 @@ _Dernière mise à jour : 2026-06-14_
 - DTO `UpdateCarpoolOfferDto` (seats, departurePoint, notes)
 
 ### Nettoyage RSVP DECLINED ✅
-- Quand un invité passe en DECLINED : suppression automatique de ses `ItemsBrought` pour l'événement
+- Quand un invité passe en DECLINED : suppression automatique de ses `ItemsBrought` et de ses `Contributions` pour l'événement
 
 ### Keyboard dismiss ✅
 - `CreateEventScreen` : tap en dehors des champs ferme le clavier (`LocalFocusManager.clearFocus`)
 
 ### Tuiles de navigation ✅
-- `StatsRow` remplacé par 4 tuiles cliquables (👥 Confirmés, 🛒 Courses, 💬 Chat, 🚗 Covoit)
+- `StatsRow` : 5 tuiles cliquables (👥 Confirmés, 🛒 Courses, € Notes, 💬 Chat, 🚗 Covoit)
 - Chaque tuile navigue directement vers son onglet (ripple natif via `OutlinedCard(onClick)`)
-- Chaque tuile affiche un total informatif (confirmés, courses, messages, offres covoit)
+- Chaque tuile affiche un total informatif (confirmés, courses, contributions, messages, offres covoit)
 
 ### Deep link invitations ✅
 - Lien partagé : `http://[serveur]/i/{token}` au lieu de `partyplanner://invite/{token}` (non cliquable)
@@ -175,8 +175,7 @@ _Dernière mise à jour : 2026-06-14_
   - Shared : modèle `EventCarpool(offers, newCarpoolCount)`, `MarkCarpoolSeenUseCase`
   - UI : badge bas Covoit = `newCarpoolCount` (reset via `onCarpoolRead()` à l'ouverture de l'onglet)
 - Suppression de la `QuickRsvpBar` sous le hero, redondante avec la `RsvpBanner` de l'onglet Invités
-- Bump version Android : `versionCode = 5` / `versionName = "1.4"`
-- Déployé + validé par l'utilisateur sur Firebase App Distribution
+- Bump version Android : `versionCode = 5` / `versionName = "1.4"` — déployé + validé sur Firebase App Distribution
 
 ---
 
@@ -201,11 +200,86 @@ _Dernière mise à jour : 2026-06-14_
 - Lien "Mot de passe oublié ?" dans le LoginForm
 - Deep link `partyplanner://reset-password?token=...` géré dans `MainActivity`
 
-### Push notifications FCM ⬜
+### Push notifications FCM ✅
 
-- Intégration Firebase Cloud Messaging
-- Notification sur : nouveau message, RSVP reçu, item ajouté, passager qui rejoint
-- Nécessite : `google-services.json`, service account côté backend, `FirebaseMessaging` SDK
+**Backend**
+- Table `DeviceTokens` : stocke les tokens FCM par device (unique index sur token)
+- `Users.notificationPending` bool : atomic update, évite les doublons par burst
+- `NotificationService` : in-memory `viewingEvent: ConcurrentHashMap<Int, Int>` userId→eventId
+  - `enterEvent(userId, eventId)` / `leaveEvent(userId)` — détection de présence par événement
+  - `isViewingEvent(userId, eventId)` — suppression de notif si l'utilisateur regarde l'event
+  - Fallback `touch(userId)` / `isOnline()` (90s) pour compatibilité
+- `POST /users/me/device-token` — enregistrement token FCM
+- `DELETE /users/me/notification` — reset flag notif
+- `PUT /users/me/event-presence/{eventId}` / `DELETE /users/me/event-presence` — présence par événement
+- Services notifiant avec titre de l'événement : `ChatService`, `ItemService`, `CarpoolService`, `InvitationService`
+- `serviceAccountKey.json` monté en volume read-only sur le serveur (`/opt/partyplanner/serviceAccountKey.json`)
+- Graceful degradation si clé absente
+
+**Shared + UI**
+- `UserApi.registerDeviceToken()`, `UserApi.markActive()`, `UserApi.enterEvent()`, `UserApi.leaveEvent()`
+- `DefaultEventDetailComponent` : `lifecycle.doOnStart` → `enterEvent`, `lifecycle.doOnStop` → `leaveEvent` (scope IO indépendant pour éviter l'annulation)
+- `PartyPlannerMessagingService` : `onNewToken` → register, `onMessageReceived` → heads-up notif
+- Icône notif : `ic_notification.xml` (monochromatic 24dp "P" blanc)
+- `POST_NOTIFICATIONS` runtime permission demandée dans `MainActivity.onCreate` (Android 13+)
+- FCM default notification icon déclaré dans `AndroidManifest.xml`
+
+### Corrections et robustesse (2026-09-26) ✅
+
+- **Icône app adaptive** : vecteurs `ic_launcher_background.xml` (fond navy `#1A1A2E`) et `ic_launcher_foreground.xml` (monogramme "P" doré + confettis) pour Android 8+ via `mipmap-anydpi-v26`
+- **Icône notification** : `ic_notification.xml` (24dp monochromatic "P" blanc), référencée dans le service FCM et le manifest
+- **WebSocket fiabilité** :
+  - `pingIntervalMillis = 30_000L` sur le plugin WebSockets (détection connexion morte)
+  - Reset du backoff à 2s après une connexion réussie (évite la dégradation permanente)
+- **doOnStop scope** : `leaveEvent()` lancé dans un `CoroutineScope(Dispatchers.IO)` indépendant — le scope du composant est annulé synchroniquement après `doOnStop`
+- **Chat keyboard** : `imePadding()` sur la Column de `ChatTabLayout` uniquement (pas sur la Column externe de `EventDetailScreen`), tab bar masquée quand le clavier est ouvert sur l'onglet Chat
+- Bump version : `versionCode = 7` / `versionName = "1.6"`
+
+---
+
+## Nouvelles features (2026-09-26) ✅
+
+### Suppression d'un invité par l'organisateur ✅
+
+**Backend**
+- `InvitationService.removeGuest(eventId, invitationId, ownerId)` : suppression en cascade
+  - `ItemsBrought` supprimés (userId = invité)
+  - `ItemRequests` fulfillés remis en "besoin" (assignedTo = null, isFulfilled = false)
+  - Passager covoiturage : statut CANCELLED
+  - Offre covoiturage si driver : passagers supprimés puis offre supprimée
+  - Contributions supprimées (addedById = invité **ou** linkedUserId = invité)
+- `DELETE /events/{id}/invitations/{invitationId}` (owner only)
+- Même cascade contributions sur `rsvp()` DECLINED : ItemsBrought + Contributions supprimés
+
+**Shared + UI**
+- `RemoveGuestUseCase`, `InvitationRepository.removeGuest()`, `InvitationApi.removeGuest()`
+- Bouton 🗑 dans `GuestRow` visible uniquement pour l'organisateur
+- Dialog de confirmation : "X ne pourra plus accéder à la soirée. Ses courses et covoiturages seront supprimés."
+- Après suppression : reload items + carpool + contributions (compteur tuile mis à jour)
+- Le guest peut être ré-invité après suppression
+
+**Tests** — 5 cas (non-owner refusé, clean + ré-invite, driver, passager, items + request reset) + 1 cas contributions cascade
+
+### Contributions / Notes (€) ✅
+
+**Backend**
+- Table `Contributions` : `eventId`, `addedById`, `linkedUserId`, `label`, `amount DECIMAL(10,2)`, `createdAt`
+- `ContributionService` : get (tri desc createdAt), add (validation montant > 0, label non vide, linkedUser participant), delete (uniquement l'ajouteur)
+- `GET/POST/DELETE /events/{id}/contributions`
+- Migration auto via `SchemaUtils.createMissingTablesAndColumns`
+
+**Shared + UI**
+- Modèle `Contribution`, `ContributionRepository`, `ContributionApi`, 3 use cases
+- 5e tuile "€" dans la `StatsRow` entre Courses et Chat (compteur contributions)
+- Onglet **Notes €** dans la barre du bas
+  - Bouton "💶 Ajouter une dépense"
+  - Toggle **Par date** (chronologique ↓) / **Par invité** (somme par guest, ordre alphabétique)
+  - Bouton ✕ de suppression visible uniquement pour l'ajouteur
+  - `AddContributionSheet` : chips guest picker (propriétaire + tous invités), libellé, montant décimal
+
+**Tests** — 13 cas : accès (owner, invité, stranger), add (valid, montant 0, label vide, guest non-participant, adder stranger), delete (adder ok, non-adder refusé), tri desc, cascade removeGuest, cascade DECLINED
+
+- Bump version : `versionCode = 8` / `versionName = "1.7"`
 
 ---
 

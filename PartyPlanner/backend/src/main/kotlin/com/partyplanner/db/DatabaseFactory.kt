@@ -27,6 +27,7 @@ object DatabaseFactory {
                 ChatMessages,
                 PasswordResetTokens,
                 DeviceTokens,
+                Contributions,
             )
             seedCategories()
         }

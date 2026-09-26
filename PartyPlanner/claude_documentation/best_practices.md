@@ -90,4 +90,5 @@ Ne jamais démarrer une session de développement sans avoir lu ces documents. I
 - Ne jamais commiter de secrets (JWT secret, clés API, mots de passe)
 - Le fichier `.env` backend ne doit pas être versionné
 - `keystore.properties` ne doit pas être versionné
+- `serviceAccountKey.json` (compte de service Firebase) ne doit pas être commité — monté en volume sur le serveur
 - Toujours incrémenter `versionCode` ET `versionName` avant un déploiement Firebase App Distribution

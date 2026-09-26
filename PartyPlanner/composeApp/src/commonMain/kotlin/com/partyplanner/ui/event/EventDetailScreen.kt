@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -22,8 +24,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.partyplanner.domain.model.CarpoolOffer
 import com.partyplanner.domain.model.ChatMessage
+import com.partyplanner.domain.model.Contribution
 import com.partyplanner.domain.model.Event
 import com.partyplanner.domain.model.EventItems
 import com.partyplanner.domain.model.Invitation
@@ -45,6 +50,7 @@ import org.jetbrains.compose.resources.stringResource
 private enum class DetailTab(val icon: String) {
     INVITES("👥"),
     ITEMS("🛒"),
+    NOTES("€"),
     CHAT("💬"),
     COVOIT("🚗"),
 }
@@ -53,6 +59,7 @@ private val DetailTab.localizedLabel: String
     @Composable get() = when (this) {
         DetailTab.INVITES -> stringResource(Res.string.detail_tab_guests)
         DetailTab.ITEMS   -> stringResource(Res.string.detail_tab_items)
+        DetailTab.NOTES   -> stringResource(Res.string.detail_tab_notes)
         DetailTab.CHAT    -> stringResource(Res.string.detail_tab_chat)
         DetailTab.COVOIT  -> stringResource(Res.string.detail_tab_carpool)
     }
@@ -62,6 +69,7 @@ private val DetailTab.localizedLabel: String
 fun EventDetailScreen(component: EventDetailComponent) {
     val state by component.state.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var guestToRemove by remember { mutableStateOf<Invitation?>(null) }
     var selectedTab by remember { mutableStateOf(DetailTab.INVITES) }
     var inviteEmail by remember { mutableStateOf("") }
     var showAddItemRequestSheet by remember { mutableStateOf(false) }
@@ -69,6 +77,8 @@ fun EventDetailScreen(component: EventDetailComponent) {
     var showCreateCarpoolSheet by remember { mutableStateOf(false) }
     var joinCarpoolOfferId by remember { mutableStateOf<Int?>(null) }
     var editCarpoolOffer by remember { mutableStateOf<CarpoolOffer?>(null) }
+    var showAddContributionSheet by remember { mutableStateOf(false) }
+    var notesViewSummary by remember { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (val s = state) {
@@ -97,12 +107,13 @@ fun EventDetailScreen(component: EventDetailComponent) {
                         },
                     )
                     StatsRow(
-                        confirmed  = s.invitations.count { it.status == InvitationStatus.ACCEPTED },
-                        totalItems = s.items.requests.size + s.items.brought.size,
-                        totalChat  = s.chatMessages.size,
-                        covoits    = s.carpoolOffers.offers.size,
-                        onTabClick = { selectedTab = it },
-                        modifier   = Modifier.padding(16.dp)
+                        confirmed     = s.invitations.count { it.status == InvitationStatus.ACCEPTED },
+                        totalItems    = s.items.requests.size + s.items.brought.size,
+                        contributions = s.contributions.size,
+                        totalChat     = s.chatMessages.size,
+                        covoits       = s.carpoolOffers.offers.size,
+                        onTabClick    = { selectedTab = it },
+                        modifier      = Modifier.padding(16.dp)
                     )
                     PullToRefreshBox(
                         isRefreshing = s.isRefreshing,
@@ -210,7 +221,9 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                             items(s.invitations) { inv ->
                                                 GuestRow(
                                                     invitation = inv,
-                                                    modifier = Modifier
+                                                    isOwner    = s.isOwner,
+                                                    onRemove   = { guestToRemove = inv },
+                                                    modifier   = Modifier
                                                         .padding(horizontal = 16.dp, vertical = 4.dp)
                                                 )
                                             }
@@ -276,6 +289,22 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                             onEdit        = { offer -> editCarpoolOffer = offer },
                                         )
                                     }
+                                    DetailTab.NOTES -> {
+                                        item {
+                                            NotesTabHeader(
+                                                onAdd    = { showAddContributionSheet = true },
+                                                modifier = Modifier.padding(horizontal = 16.dp)
+                                            )
+                                        }
+                                        item { Spacer(Modifier.height(4.dp)) }
+                                        NotesTabContent(
+                                            contributions = s.contributions,
+                                            currentUserId = s.currentUserId,
+                                            showSummary   = notesViewSummary,
+                                            onToggleView  = { notesViewSummary = !notesViewSummary },
+                                            onDelete      = component::onDeleteContribution,
+                                        )
+                                    }
                                     else -> {}
                                 }
                             }
@@ -294,10 +323,11 @@ fun EventDetailScreen(component: EventDetailComponent) {
                             },
                             modifier = Modifier.navigationBarsPadding(),
                             badgeCounts = mapOf(
-                                DetailTab.CHAT   to s.unreadChatCount,
-                                DetailTab.ITEMS  to s.items.newItemsCount,
+                                DetailTab.CHAT    to s.unreadChatCount,
+                                DetailTab.ITEMS   to s.items.newItemsCount,
                                 DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
-                                DetailTab.COVOIT to s.carpoolOffers.newCarpoolCount,
+                                DetailTab.COVOIT  to s.carpoolOffers.newCarpoolCount,
+                                DetailTab.NOTES   to 0,
                             ),
                         )
                     }
@@ -365,6 +395,22 @@ fun EventDetailScreen(component: EventDetailComponent) {
         )
     }
 
+    val successState = state as? EventDetailState.Success
+    if (showAddContributionSheet && successState != null) {
+        val participants = buildList {
+            add(successState.event.ownerId to successState.event.ownerName)
+            successState.invitations.forEach { add(it.userId to it.userDisplayName) }
+        }
+        AddContributionSheet(
+            participants = participants,
+            onConfirm    = { linkedUserId, label, amount ->
+                component.onAddContribution(linkedUserId, label, amount)
+                showAddContributionSheet = false
+            },
+            onDismiss    = { showAddContributionSheet = false }
+        )
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -377,6 +423,32 @@ fun EventDetailScreen(component: EventDetailComponent) {
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(Res.string.common_cancel))
+                }
+            }
+        )
+    }
+
+    guestToRemove?.let { guest ->
+        AlertDialog(
+            onDismissRequest = { guestToRemove = null },
+            title = { Text(stringResource(Res.string.detail_dialog_remove_guest_title)) },
+            text  = {
+                Text(stringResource(Res.string.detail_dialog_remove_guest_text, guest.userDisplayName))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    component.onRemoveGuest(guest.id)
+                    guestToRemove = null
+                }) {
+                    Text(
+                        stringResource(Res.string.detail_dialog_remove_guest_confirm),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { guestToRemove = null }) {
                     Text(stringResource(Res.string.common_cancel))
                 }
             }
@@ -513,6 +585,7 @@ private fun DetailHero(
 private fun StatsRow(
     confirmed: Int,
     totalItems: Int,
+    contributions: Int,
     totalChat: Int,
     covoits: Int,
     onTabClick: (DetailTab) -> Unit,
@@ -523,7 +596,7 @@ private fun StatsRow(
     val gradC = MaterialTheme.appColors.gradC
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         StatTile(
             icon = "👥", value = "$confirmed",
@@ -538,15 +611,21 @@ private fun StatsRow(
             modifier = Modifier.weight(1f)
         )
         StatTile(
+            icon = "€", value = "$contributions",
+            label = stringResource(Res.string.detail_tab_notes),
+            gradient = gradB, onClick = { onTabClick(DetailTab.NOTES) },
+            modifier = Modifier.weight(1f)
+        )
+        StatTile(
             icon = "💬", value = "$totalChat",
             label = stringResource(Res.string.detail_tab_chat),
-            gradient = gradB, onClick = { onTabClick(DetailTab.CHAT) },
+            gradient = gradA, onClick = { onTabClick(DetailTab.CHAT) },
             modifier = Modifier.weight(1f)
         )
         StatTile(
             icon = "🚗", value = "$covoits",
             label = stringResource(Res.string.detail_tab_carpool),
-            gradient = gradA, onClick = { onTabClick(DetailTab.COVOIT) },
+            gradient = gradC, onClick = { onTabClick(DetailTab.COVOIT) },
             modifier = Modifier.weight(1f)
         )
     }
@@ -844,7 +923,12 @@ private fun OrganizerRow(name: String, modifier: Modifier = Modifier) {
 // ── Guest row ─────────────────────────────────────────────────────────────────
 
 @Composable
-private fun GuestRow(invitation: Invitation, modifier: Modifier = Modifier) {
+private fun GuestRow(
+    invitation: Invitation,
+    isOwner: Boolean = false,
+    onRemove: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val emoji = when (invitation.status) {
         InvitationStatus.ACCEPTED -> "✅"
         InvitationStatus.DECLINED -> "❌"
@@ -857,12 +941,25 @@ private fun GuestRow(invitation: Invitation, modifier: Modifier = Modifier) {
             .clip(AppShapes.Card)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.5.dp, MaterialTheme.colorScheme.outline, AppShapes.Card)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(start = 16.dp, end = if (isOwner) 4.dp else 16.dp, top = 12.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(invitation.userDisplayName, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            invitation.userDisplayName,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
         Text(emoji, style = MaterialTheme.typography.bodyMedium)
+        if (isOwner) {
+            IconButton(onClick = onRemove) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Supprimer l'invité",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
@@ -1803,7 +1900,283 @@ private fun formatChatTime(dt: kotlinx.datetime.LocalDateTime): String {
     return "$h:$m"
 }
 
+// ── Notes tab ─────────────────────────────────────────────────────────────────
+
+@Composable
+private fun NotesTabHeader(onAdd: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .clip(AppShapes.TextField)
+            .background(brush = MaterialTheme.appColors.gradA)
+            .clickable(onClick = onAdd),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(stringResource(Res.string.detail_notes_add_btn), color = Color.White, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+fun androidx.compose.foundation.lazy.LazyListScope.NotesTabContent(
+    contributions: List<Contribution>,
+    currentUserId: Int,
+    showSummary: Boolean,
+    onToggleView: () -> Unit,
+    onDelete: (Int) -> Unit,
+) {
+    item {
+        @Composable
+        fun ToggleBtn(label: String, active: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+            val gradA = MaterialTheme.appColors.gradA
+            Box(
+                modifier = modifier
+                    .height(36.dp)
+                    .clip(AppShapes.TextField)
+                    .then(
+                        if (active) Modifier.background(brush = gradA)
+                        else Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                    .clickable(enabled = !active, onClick = onClick)
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text  = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ToggleBtn(
+                label    = stringResource(Res.string.detail_notes_view_list),
+                active   = !showSummary,
+                onClick  = onToggleView,
+                modifier = Modifier.weight(1f)
+            )
+            ToggleBtn(
+                label    = stringResource(Res.string.detail_notes_view_summary),
+                active   = showSummary,
+                onClick  = onToggleView,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+
+    if (contributions.isEmpty()) {
+        item {
+            Box(
+                Modifier.fillMaxWidth().padding(40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text  = stringResource(Res.string.detail_notes_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        return
+    }
+
+    if (!showSummary) {
+        items(contributions, key = { "contrib-${it.id}" }) { c ->
+            ContributionRow(
+                contribution = c,
+                canDelete    = c.addedById == currentUserId,
+                onDelete     = { onDelete(c.id) },
+                modifier     = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
+    } else {
+        val summaryList = contributions
+            .groupBy { it.linkedUserId to it.linkedUserName }
+            .map { (key, list) -> Triple(key.first, key.second, list.sumOf { it.amount }) }
+            .sortedBy { it.second }
+        items(summaryList, key = { "summary-${it.first}" }) { (_, name, total) ->
+            ContributionSummaryRow(
+                name     = name,
+                total    = total,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ContributionRow(
+    contribution: Contribution,
+    canDelete: Boolean,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppShapes.Card)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.5.dp, MaterialTheme.colorScheme.outline, AppShapes.Card)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(contribution.label, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text  = contribution.linkedUserName,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            text  = formatAmount(contribution.amount),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        if (canDelete) {
+            TextButton(onClick = onDelete, contentPadding = PaddingValues(0.dp)) {
+                Text("✕", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContributionSummaryRow(
+    name: String,
+    total: Double,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppShapes.Card)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.5.dp, MaterialTheme.colorScheme.outline, AppShapes.Card)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(
+            text  = formatAmount(total),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddContributionSheet(
+    participants: List<Pair<Int, String>>,
+    onConfirm: (linkedUserId: Int, label: String, amount: Double) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var selectedUserId by remember { mutableStateOf<Int?>(null) }
+    var label by remember { mutableStateOf("") }
+    var amountText by remember { mutableStateOf("") }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val amount = amountText.toDoubleOrNull() ?: 0.0
+    val canConfirm = selectedUserId != null && label.isNotBlank() && amount > 0.0
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(stringResource(Res.string.detail_notes_sheet_title), style = MaterialTheme.typography.titleMedium)
+
+            Text(
+                text  = stringResource(Res.string.detail_notes_select_guest),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(participants, key = { it.first }) { (userId, name) ->
+                    val selected = selectedUserId == userId
+                    Box(
+                        modifier = Modifier
+                            .clip(AppShapes.Pill)
+                            .then(
+                                if (selected) Modifier.background(brush = MaterialTheme.appColors.gradA)
+                                else Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                            )
+                            .clickable { selectedUserId = userId }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text  = name,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value         = label,
+                onValueChange = { label = it },
+                label         = { Text(stringResource(Res.string.detail_notes_label_hint)) },
+                modifier      = Modifier.fillMaxWidth(),
+                shape         = AppShapes.TextField,
+                singleLine    = true,
+            )
+
+            OutlinedTextField(
+                value         = amountText,
+                onValueChange = { v ->
+                    amountText = v.filter { it.isDigit() || it == '.' || it == ',' }.replace(',', '.')
+                },
+                label          = { Text(stringResource(Res.string.detail_notes_amount_hint)) },
+                modifier       = Modifier.fillMaxWidth(),
+                shape          = AppShapes.TextField,
+                singleLine     = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clip(AppShapes.TextField)
+                    .then(
+                        if (canConfirm) Modifier.background(brush = MaterialTheme.appColors.gradA)
+                        else Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                    .clickable(enabled = canConfirm) {
+                        onConfirm(selectedUserId!!, label.trim(), amount)
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text  = stringResource(Res.string.common_add),
+                    color = if (canConfirm) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
+    }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+private fun formatAmount(amount: Double): String {
+    val cents = (amount * 100 + 0.5).toLong()
+    val e = cents / 100
+    val c = (cents % 100).coerceAtLeast(0)
+    return "$e.${c.toString().padStart(2, '0')} €"
+}
 
 @Suppress("DEPRECATION")
 private fun buildSubtitle(event: Event): String {

@@ -3,6 +3,7 @@ package com.partyplanner
 import com.partyplanner.db.tables.CarpoolOffers
 import com.partyplanner.db.tables.CarpoolPassengers
 import com.partyplanner.db.tables.ChatMessages
+import com.partyplanner.db.tables.Contributions
 import com.partyplanner.db.tables.DeviceTokens
 import com.partyplanner.db.tables.EventCarpoolViews
 import com.partyplanner.db.tables.EventItemViews
@@ -27,6 +28,7 @@ private val ALL_TABLES_ORDERED = listOf(
     "items_brought",
     "item_requests",
     "item_categories",
+    "contributions",
     "invitations",
     "events",
     "device_tokens",
@@ -58,6 +60,7 @@ object TestDatabaseSetup {
                 ChatMessages,
                 PasswordResetTokens,
                 DeviceTokens,
+                Contributions,
             )
         }
         initialized = true

@@ -26,10 +26,14 @@ Application mobile d'organisation d'événements sociaux (BBQ, soirées, sorties
 - **Auth** : JWT
 - **Temps réel** : WebSockets Ktor (pour le chat)
 
-### Services tiers (à venir)
+### Services tiers intégrés
+- Mail : Resend (réinitialisation de mot de passe)
+- Push notifications : Firebase Cloud Messaging (FCM) — intégré et fonctionnel
+  - `serviceAccountKey.json` monté en volume sur le serveur, **ne jamais commiter**
+  - `FCM_SERVICE_ACCOUNT_PATH=/app/serviceAccountKey.json` dans `.env`
+
+### Services tiers à venir
 - Invitations SMS : Twilio
-- Mail : Resend ou Mailgun
-- Push notifications : Firebase Cloud Messaging
 - iOS CI/CD : Codemagic
 
 ## Structure du projet
@@ -183,6 +187,18 @@ object ChatReactions : IntIdTable("chat_reactions") {
 }
 ```
 
+### Contributions / Notes (€)
+```kotlin
+object Contributions : IntIdTable("contributions") {
+    val eventId      = reference("event_id", Events)
+    val addedById    = reference("added_by_id", Users)
+    val linkedUserId = reference("linked_user_id", Users)
+    val label        = varchar("label", 200)
+    val amount       = decimal("amount", precision = 10, scale = 2)
+    val createdAt    = datetime("created_at")
+}
+```
+
 ### Pot commun (prévu pour phase future)
 ```kotlin
 object CommonFunds : IntIdTable("common_funds") {
@@ -278,6 +294,13 @@ JWT_SECRET=changeme
 - WebSocket Ktor natif pour le chat (pas de lib tierce)
 - Koin pour DI (Hilt = Android only, incompatible KMM)
 - Decompose pour la navigation (fonctionne en commonMain)
+- `CoroutineScope(Dispatchers.IO)` indépendant dans `doOnStop` pour les requêtes fire-and-forget (le scope composant est annulé synchroniquement après `doOnStop`)
+- Détection de présence par événement (`viewingEvent ConcurrentHashMap`) plutôt que présence globale (`isOnline`) pour cibler précisément les notifications
+- `pingIntervalMillis = 30_000L` sur le plugin WebSockets côté client (détection connexion morte sans attendre un envoi)
+- Icône notification : drawable monochromatic dédié (`ic_notification.xml`) — `R.mipmap.ic_launcher` ne fonctionne pas comme small icon sur Android moderne
+- Cascade suppression invité : deleteWhere contributions WHERE addedById=userId OR linkedUserId=userId (même logique pour rsvp DECLINED)
+- `or` en Exposed DSL : `import org.jetbrains.exposed.sql.or` (séparé de `and` qui est dans le même package)
+- Contributions amount stocké `DECIMAL(10,2)` en base, exposé `Double` en DTO JSON pour compatibilité kotlinx.serialization
 
 ## Commandes utiles
 ```bash

@@ -10,7 +10,9 @@ Messagerie de groupe en temps réel par événement. Chaque événement dispose 
 - Auto-scroll sur nouveau message
 - Bulles de chat différenciées (moi vs autres)
 - Badge onglet "Chat" : messages non lus (reset à l'ouverture de l'onglet)
-- Reconnexion automatique avec backoff exponentiel (2s → 4s → … → 30s max)
+- Reconnexion automatique avec backoff exponentiel (2s → 4s → … → 30s max, reset à 2s après connexion réussie)
+- Ping WebSocket toutes les 30s (`pingIntervalMillis`) pour détecter les connexions mortes
+- Suivi de présence : `enterEvent` / `leaveEvent` déclenché par les hooks `doOnStart` / `doOnStop` du composant
 
 ## Fichiers clés
 
@@ -80,6 +82,8 @@ Connexion : ws://[serveur]/events/{id}/chat?token={jwt}
 - Soft delete sur `ChatMessages` (`deletedAt`) pour préserver la cohérence des threads de réponse
 - Le badge chat affiche le nombre de messages **totaux** (pas uniquement les non lus) dans la StatsRow
 - Le badge de l'onglet affiche les messages **non lus** et se remet à 0 à l'ouverture
+- `imePadding()` est sur la Column de `ChatTabLayout` uniquement — pas sur la Column externe de `EventDetailScreen` (sinon les insets IME sont consommés et `imeVisible` retourne toujours false dans les descendants)
+- `doOnStop` utilise un scope IO indépendant (`CoroutineScope(Dispatchers.IO)`) pour `leaveEvent()` — le scope du composant est annulé synchroniquement juste après `doOnStop`
 
 ## Dépendances importantes
 ```kotlin

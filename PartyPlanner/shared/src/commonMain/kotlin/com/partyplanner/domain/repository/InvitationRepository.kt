@@ -12,4 +12,5 @@ interface InvitationRepository {
     suspend fun inviteByEmail(eventId: Int, email: String): Result<Invitation>
     suspend fun inviteByUserId(eventId: Int, userId: Int): Result<Invitation>
     suspend fun getInviteSuggestions(eventId: Int): Result<List<UserSuggestion>>
+    suspend fun removeGuest(eventId: Int, invitationId: Int): Result<Unit>
 }

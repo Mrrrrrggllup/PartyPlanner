@@ -77,6 +77,13 @@ class InvitationApi(
         return response.body()
     }
 
+    suspend fun removeGuest(eventId: Int, invitationId: Int) {
+        val response = httpClient.delete("$baseUrl/events/$eventId/invitations/$invitationId") {
+            header(HttpHeaders.Authorization, bearerToken())
+        }
+        if (!response.status.isSuccess()) throw Exception(errorMessage(response))
+    }
+
     private suspend fun errorMessage(response: HttpResponse): String = when (response.status) {
         HttpStatusCode.NotFound   -> "Aucun utilisateur avec cet email"
         HttpStatusCode.Conflict   -> "Utilisateur déjà invité"

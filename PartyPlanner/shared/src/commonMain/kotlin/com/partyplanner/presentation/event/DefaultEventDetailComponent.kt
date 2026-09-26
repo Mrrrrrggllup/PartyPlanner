@@ -8,10 +8,14 @@ import com.partyplanner.data.local.SessionStorage
 import com.partyplanner.data.remote.UserApi
 import com.partyplanner.domain.usecase.event.DeleteEventUseCase
 import com.partyplanner.domain.usecase.event.GetEventUseCase
+import com.partyplanner.domain.usecase.contribution.AddContributionUseCase
+import com.partyplanner.domain.usecase.contribution.DeleteContributionUseCase
+import com.partyplanner.domain.usecase.contribution.GetContributionsUseCase
 import com.partyplanner.domain.usecase.invitation.GetEventInvitationsUseCase
 import com.partyplanner.domain.usecase.invitation.GetInviteSuggestionsUseCase
 import com.partyplanner.domain.usecase.invitation.InviteByEmailUseCase
 import com.partyplanner.domain.usecase.invitation.InviteByUserIdUseCase
+import com.partyplanner.domain.usecase.invitation.RemoveGuestUseCase
 import com.partyplanner.domain.usecase.invitation.RsvpToInvitationUseCase
 import com.partyplanner.domain.model.InvitationStatus
 import com.partyplanner.domain.repository.ChatRepository
@@ -59,6 +63,10 @@ class DefaultEventDetailComponent(
     private val inviteByUserIdUseCase: InviteByUserIdUseCase             by inject()
     private val getInviteSuggestionsUseCase: GetInviteSuggestionsUseCase by inject()
     private val rsvpToInvitationUseCase: RsvpToInvitationUseCase        by inject()
+    private val removeGuestUseCase: RemoveGuestUseCase                  by inject()
+    private val getContributionsUseCase: GetContributionsUseCase        by inject()
+    private val addContributionUseCase: AddContributionUseCase          by inject()
+    private val deleteContributionUseCase: DeleteContributionUseCase    by inject()
     private val getCategoriesUseCase: GetCategoriesUseCase  by inject()
     private val getItemsUseCase: GetItemsUseCase            by inject()
     private val addItemRequestUseCase: AddItemRequestUseCase by inject()
@@ -108,6 +116,7 @@ class DefaultEventDetailComponent(
                     loadItems()
                     loadCategories()
                     loadCarpoolOffers()
+                    loadContributions()
                     connectChat()
                     if (isOwner) loadInviteSuggestions()
                 },
@@ -330,6 +339,44 @@ class DefaultEventDetailComponent(
         }
     }
 
+    override fun onRemoveGuest(invitationId: Int) {
+        scope.launch {
+            removeGuestUseCase(eventId, invitationId).onSuccess {
+                updateSuccess {
+                    copy(invitations = invitations.filter { it.id != invitationId })
+                }
+                // Reload items, carpool, and contributions since they may have changed server-side
+                loadItems()
+                loadCarpoolOffers()
+                loadContributions()
+            }
+        }
+    }
+
+    private fun loadContributions() {
+        scope.launch {
+            getContributionsUseCase(eventId).onSuccess { list ->
+                updateSuccess { copy(contributions = list) }
+            }
+        }
+    }
+
+    override fun onAddContribution(linkedUserId: Int, label: String, amount: Double) {
+        scope.launch {
+            addContributionUseCase(eventId, linkedUserId, label, amount).onSuccess { new ->
+                updateSuccess { copy(contributions = listOf(new) + contributions) }
+            }
+        }
+    }
+
+    override fun onDeleteContribution(contributionId: Int) {
+        scope.launch {
+            deleteContributionUseCase(eventId, contributionId).onSuccess {
+                updateSuccess { copy(contributions = contributions.filter { it.id != contributionId }) }
+            }
+        }
+    }
+
     override fun onDismissInviteResult() {
         updateSuccess { copy(inviteEmailResult = null) }
     }
@@ -350,12 +397,14 @@ class DefaultEventDetailComponent(
     override fun onRefresh() {
         updateSuccess { copy(isRefreshing = true) }
         scope.launch {
-            val inv     = async { getEventInvitationsUseCase(eventId) }
-            val items   = async { getItemsUseCase(eventId) }
-            val carpool = async { getCarpoolOffersUseCase(eventId) }
-            inv.await().onSuccess     { invitations -> updateSuccess { copy(invitations = invitations) } }
-            items.await().onSuccess   { i           -> updateSuccess { copy(items = i) } }
-            carpool.await().onSuccess { offers      -> updateSuccess { copy(carpoolOffers = offers) } }
+            val inv           = async { getEventInvitationsUseCase(eventId) }
+            val items         = async { getItemsUseCase(eventId) }
+            val carpool       = async { getCarpoolOffersUseCase(eventId) }
+            val contributions = async { getContributionsUseCase(eventId) }
+            inv.await().onSuccess           { invitations -> updateSuccess { copy(invitations = invitations) } }
+            items.await().onSuccess         { i           -> updateSuccess { copy(items = i) } }
+            carpool.await().onSuccess       { offers      -> updateSuccess { copy(carpoolOffers = offers) } }
+            contributions.await().onSuccess { list        -> updateSuccess { copy(contributions = list) } }
             updateSuccess { copy(isRefreshing = false) }
         }
     }

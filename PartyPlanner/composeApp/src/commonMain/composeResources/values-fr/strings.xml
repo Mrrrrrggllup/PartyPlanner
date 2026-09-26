@@ -96,6 +96,9 @@
     <string name="detail_btn_delete_event">Supprimer l'événement</string>
     <string name="detail_dialog_delete_title">Supprimer l'événement ?</string>
     <string name="detail_dialog_delete_text">Cette action est irréversible.</string>
+    <string name="detail_dialog_remove_guest_title">Supprimer cet invité ?</string>
+    <string name="detail_dialog_remove_guest_text">%1$s ne pourra plus accéder à la soirée. Ses courses et ses covoiturages seront supprimés.</string>
+    <string name="detail_dialog_remove_guest_confirm">Supprimer</string>
 
     <!-- Event detail - items tab -->
     <string name="detail_items_add_request">+ Besoin</string>
@@ -128,4 +131,15 @@
     <!-- Event detail - chat tab -->
     <string name="detail_chat_empty">Aucun message pour l'instant.\nSoyez le premier ! 👋</string>
     <string name="detail_chat_placeholder">Message…</string>
+
+    <!-- Event detail - notes tab -->
+    <string name="detail_tab_notes">Notes €</string>
+    <string name="detail_notes_add_btn">💶 Ajouter une dépense</string>
+    <string name="detail_notes_empty">Aucune contribution pour l'instant</string>
+    <string name="detail_notes_view_list">Par date</string>
+    <string name="detail_notes_view_summary">Par invité</string>
+    <string name="detail_notes_sheet_title">Ajouter une dépense</string>
+    <string name="detail_notes_label_hint">Libellé (ex : glace, charbon…)</string>
+    <string name="detail_notes_amount_hint">Montant (€)</string>
+    <string name="detail_notes_select_guest">Qui a payé ?</string>
 </resources>

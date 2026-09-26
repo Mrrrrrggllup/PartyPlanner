@@ -96,6 +96,9 @@
     <string name="detail_btn_delete_event">Delete event</string>
     <string name="detail_dialog_delete_title">Delete event?</string>
     <string name="detail_dialog_delete_text">This action cannot be undone.</string>
+    <string name="detail_dialog_remove_guest_title">Remove guest?</string>
+    <string name="detail_dialog_remove_guest_text">%1$s will no longer have access to this event. Their shopping items and carpools will be removed.</string>
+    <string name="detail_dialog_remove_guest_confirm">Remove</string>
 
     <!-- Event detail - items tab -->
     <string name="detail_items_add_request">+ Need</string>
@@ -128,4 +131,15 @@
     <!-- Event detail - chat tab -->
     <string name="detail_chat_empty">No messages yet.\nBe the first! 👋</string>
     <string name="detail_chat_placeholder">Message…</string>
+
+    <!-- Event detail - notes tab -->
+    <string name="detail_tab_notes">Notes €</string>
+    <string name="detail_notes_add_btn">💶 Add expense</string>
+    <string name="detail_notes_empty">No contributions yet</string>
+    <string name="detail_notes_view_list">By date</string>
+    <string name="detail_notes_view_summary">By guest</string>
+    <string name="detail_notes_sheet_title">Add an expense</string>
+    <string name="detail_notes_label_hint">Label (e.g.: ice, charcoal…)</string>
+    <string name="detail_notes_amount_hint">Amount (€)</string>
+    <string name="detail_notes_select_guest">Who paid for this?</string>
 </resources>
