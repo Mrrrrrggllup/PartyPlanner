@@ -25,5 +25,21 @@ fun Route.userRoutes(notificationService: NotificationService) {
             notificationService.markActive(userId)
             call.respond(HttpStatusCode.NoContent)
         }
+
+        // User opened an event screen — suppress notifications for this event while viewing
+        put("/users/me/event-presence/{eventId}") {
+            val userId  = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asInt()
+            val eventId = call.parameters["eventId"]?.toIntOrNull()
+                ?: return@put call.respond(HttpStatusCode.BadRequest)
+            notificationService.enterEvent(userId, eventId)
+            call.respond(HttpStatusCode.NoContent)
+        }
+
+        // User left the event screen — resume notifications for this event
+        delete("/users/me/event-presence") {
+            val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asInt()
+            notificationService.leaveEvent(userId)
+            call.respond(HttpStatusCode.NoContent)
+        }
     }
 }

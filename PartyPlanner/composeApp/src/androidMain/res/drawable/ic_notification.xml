@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- White "P" monogram for notification small icon (must be monochrome) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M4,3 L11,3 A7,5 0 0,1 11,13 L9,13 L9,21 L4,21 Z M9,5 L11,5 A5,3 0 0,1 11,11 L9,11 Z" />
+
+</vector>

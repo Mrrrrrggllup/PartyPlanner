@@ -27,6 +27,7 @@ import org.koin.core.component.inject
 class DefaultMainComponent(
     componentContext: ComponentContext,
     private val initialInviteToken: String? = null,
+    private val initialEventId: Int? = null,
     private val onLogout: () -> Unit = {},
 ) : MainComponent, ComponentContext by componentContext, KoinComponent {
 
@@ -50,6 +51,7 @@ class DefaultMainComponent(
 
     init {
         initialInviteToken?.let { navigation.push(Config.Invitation(it)) }
+        initialEventId?.let { navigation.push(Config.EventDetail(it)) }
     }
 
     private fun createChild(config: Config, context: ComponentContext): MainComponent.Child =

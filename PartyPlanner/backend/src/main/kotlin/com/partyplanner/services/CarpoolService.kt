@@ -156,7 +156,7 @@ class CarpoolService(private val notificationService: NotificationService) {
                 offer.toResponse()
             }
             // Notify the driver that someone joined their offer
-            notificationService.notifyUsers(listOf(result.driverId), userId)
+            notificationService.notifyUsers(listOf(result.driverId), userId, eventId)
             result
         }
 
@@ -173,7 +173,7 @@ class CarpoolService(private val notificationService: NotificationService) {
                 offer.toResponse()
             }
             // Notify the driver that someone left their offer
-            notificationService.notifyUsers(listOf(result.driverId), userId)
+            notificationService.notifyUsers(listOf(result.driverId), userId, eventId)
             result
         }
 

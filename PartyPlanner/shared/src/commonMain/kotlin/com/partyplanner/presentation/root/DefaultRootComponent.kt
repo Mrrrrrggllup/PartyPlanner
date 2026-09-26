@@ -31,6 +31,7 @@ class DefaultRootComponent(
     private val registerUseCase: RegisterUseCase,
     private val initialInviteToken: String? = null,
     private val initialResetToken: String? = null,
+    private val initialEventId: Int? = null,
 ) : RootComponent, ComponentContext by componentContext {
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob()).also {
@@ -40,6 +41,7 @@ class DefaultRootComponent(
 
     // Stored so we can hand it off after auth when the user wasn't logged in
     private var pendingInviteToken: String? = initialInviteToken
+    private var pendingEventId: Int? = initialEventId
 
     override val childStack: Value<ChildStack<*, RootComponent.Child>> = childStack(
         source = navigation,
@@ -52,7 +54,7 @@ class DefaultRootComponent(
     init {
         scope.launch {
             if (authRepository.getStoredSession() != null) {
-                navigation.replaceAll(Config.Main(pendingInviteToken))
+                navigation.replaceAll(Config.Main(pendingInviteToken, pendingEventId))
             } else if (initialResetToken != null) {
                 navigation.push(Config.ResetPassword(initialResetToken))
             }
@@ -73,8 +75,10 @@ class DefaultRootComponent(
                     registerUseCase = registerUseCase,
                     onAuthSuccess = {
                         val token = pendingInviteToken
+                        val eventId = pendingEventId
                         pendingInviteToken = null
-                        navigation.replaceAll(Config.Main(token))
+                        pendingEventId = null
+                        navigation.replaceAll(Config.Main(token, eventId))
                     },
                     onForgotPasswordNav = { navigation.push(Config.ForgotPassword) }
                 )
@@ -95,9 +99,10 @@ class DefaultRootComponent(
             )
             is Config.Main -> RootComponent.Child.MainChild(
                 DefaultMainComponent(
-                    componentContext = context,
+                    componentContext   = context,
                     initialInviteToken = config.inviteToken,
-                    onLogout = { navigation.replaceAll(Config.Auth) },
+                    initialEventId     = config.eventId,
+                    onLogout           = { navigation.replaceAll(Config.Auth) },
                 )
             )
         }
@@ -105,7 +110,7 @@ class DefaultRootComponent(
     @Serializable
     private sealed interface Config {
         @Serializable data object Auth : Config
-        @Serializable data class Main(val inviteToken: String? = null) : Config
+        @Serializable data class Main(val inviteToken: String? = null, val eventId: Int? = null) : Config
         @Serializable data object ForgotPassword : Config
         @Serializable data class ResetPassword(val token: String) : Config
     }

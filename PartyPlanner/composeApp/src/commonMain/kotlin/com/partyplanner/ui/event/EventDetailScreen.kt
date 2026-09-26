@@ -83,7 +83,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
             }
             is EventDetailState.Success -> {
                 val imeVisible = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
-                Column(modifier = Modifier.fillMaxSize().imePadding()) {
+                Column(modifier = Modifier.fillMaxSize()) {
                     DetailHero(
                         title        = s.event.title,
                         subtitle     = buildSubtitle(s.event),
@@ -1681,7 +1681,7 @@ private fun ChatTabLayout(
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    Column(modifier = modifier) {
+    Column(modifier = modifier.imePadding()) {
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f),

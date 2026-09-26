@@ -73,7 +73,9 @@ val sharedModule = module {
             install(Logging) {
                 level = LogLevel.INFO
             }
-            install(WebSockets)
+            install(WebSockets) {
+                pingIntervalMillis = 30_000L
+            }
             HttpResponseValidator {
                 validateResponse { response ->
                     if (response.status == HttpStatusCode.Unauthorized &&

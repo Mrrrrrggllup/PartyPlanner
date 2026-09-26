@@ -31,4 +31,22 @@ class UserApi(
             }
         }
     }
+
+    suspend fun enterEvent(eventId: Int) {
+        val authToken = token() ?: return
+        runCatching {
+            httpClient.put("$baseUrl/users/me/event-presence/$eventId") {
+                header(HttpHeaders.Authorization, "Bearer $authToken")
+            }
+        }
+    }
+
+    suspend fun leaveEvent() {
+        val authToken = token() ?: return
+        runCatching {
+            httpClient.delete("$baseUrl/users/me/event-presence") {
+                header(HttpHeaders.Authorization, "Bearer $authToken")
+            }
+        }
+    }
 }

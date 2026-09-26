@@ -2,7 +2,10 @@ package com.partyplanner.presentation.event
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
+import com.arkivanov.essenty.lifecycle.doOnStart
+import com.arkivanov.essenty.lifecycle.doOnStop
 import com.partyplanner.data.local.SessionStorage
+import com.partyplanner.data.remote.UserApi
 import com.partyplanner.domain.usecase.event.DeleteEventUseCase
 import com.partyplanner.domain.usecase.event.GetEventUseCase
 import com.partyplanner.domain.usecase.invitation.GetEventInvitationsUseCase
@@ -49,6 +52,7 @@ class DefaultEventDetailComponent(
     private val onEdit: () -> Unit = {},
 ) : EventDetailComponent, ComponentContext by componentContext, KoinComponent {
 
+    private val userApi: UserApi                                        by inject()
     private val sessionStorage: SessionStorage                         by inject()
     private val getEventInvitationsUseCase: GetEventInvitationsUseCase by inject()
     private val inviteByEmailUseCase: InviteByEmailUseCase               by inject()
@@ -74,6 +78,15 @@ class DefaultEventDetailComponent(
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob()).also {
         lifecycle.doOnDestroy(it::cancel)
+    }
+
+    init {
+        // Tell the backend we're viewing this event so it skips push notifications for us.
+        // doOnStart fires immediately if already started, and again on each app foreground.
+        // doOnStop fires when navigating away or app backgrounded. Uses its own IO scope
+        // because the component scope is cancelled synchronously right after doOnStop.
+        lifecycle.doOnStart { scope.launch { runCatching { userApi.enterEvent(eventId) } } }
+        lifecycle.doOnStop  { CoroutineScope(Dispatchers.IO).launch { runCatching { userApi.leaveEvent() } } }
     }
 
     private val _state = MutableStateFlow<EventDetailState>(EventDetailState.Loading)
@@ -161,8 +174,11 @@ class DefaultEventDetailComponent(
         scope.launch {
             var backoff = 2_000L
             while (true) {
-                runCatching { chatRepository.connect(eventId) }
-                    .onFailure { println("Chat WS error: $it") }
+                val result = runCatching { chatRepository.connect(eventId) }
+                result.onFailure { println("Chat WS error: $it") }
+                // Connection was established (no exception) — reset backoff so the next
+                // reconnect is fast regardless of how many times we've retried before.
+                if (result.isSuccess) backoff = 2_000L
                 delay(backoff)
                 backoff = (backoff * 2).coerceAtMost(30_000L)
             }

@@ -36,6 +36,12 @@ class MainActivity : ComponentActivity() {
             if (uri.scheme == "partyplanner" && uri.host == "reset-password") uri.getQueryParameter("token")
             else null
         }
+        // Deep link depuis notif push : partyplanner://event/{id} (foreground)
+        // ou extras FCM (background) : intent.getStringExtra("eventId")
+        val eventId = intent?.data?.let { uri ->
+            if (uri.scheme == "partyplanner" && uri.host == "event") uri.lastPathSegment?.toIntOrNull()
+            else null
+        } ?: intent?.getStringExtra("eventId")?.toIntOrNull()
 
         val root = retainedComponent {
             DefaultRootComponent(
@@ -45,6 +51,7 @@ class MainActivity : ComponentActivity() {
                 registerUseCase    = get<RegisterUseCase>(),
                 initialInviteToken = inviteToken,
                 initialResetToken  = resetToken,
+                initialEventId     = eventId,
             )
         }
 

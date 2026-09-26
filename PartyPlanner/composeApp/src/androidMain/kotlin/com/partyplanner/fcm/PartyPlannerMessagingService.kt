@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -31,7 +32,8 @@ class PartyPlannerMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         // App is in foreground — show a heads-up notification manually
         val notification = message.notification ?: return
-        showNotification(notification.title ?: "PartyPlanner", notification.body ?: "")
+        val eventId = message.data["eventId"]?.toIntOrNull()
+        showNotification(notification.title ?: "PartyPlanner", notification.body ?: "", eventId)
     }
 
     override fun onDestroy() {
@@ -39,7 +41,7 @@ class PartyPlannerMessagingService : FirebaseMessagingService() {
         scope.cancel()
     }
 
-    private fun showNotification(title: String, body: String) {
+    private fun showNotification(title: String, body: String, eventId: Int? = null) {
         val channelId = CHANNEL_ID
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -51,6 +53,7 @@ class PartyPlannerMessagingService : FirebaseMessagingService() {
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (eventId != null) data = Uri.parse("partyplanner://event/$eventId")
         }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,
@@ -58,7 +61,7 @@ class PartyPlannerMessagingService : FirebaseMessagingService() {
         )
 
         val notif = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

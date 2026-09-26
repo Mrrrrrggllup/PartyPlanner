@@ -46,7 +46,7 @@ fun Route.chatRoutes(chatService: ChatService, authService: AuthService, notific
             return@webSocket
         }
 
-        notificationService.touch(userId)
+        notificationService.enterEvent(userId, eventId)
         chatService.addSession(eventId, this)
         try {
             // Send history on connect

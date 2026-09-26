@@ -94,7 +94,7 @@ class InvitationService(private val notificationService: NotificationService) {
 
         // Notify the event owner when someone accepts or maybe-s
         if (status == InvitationStatus.ACCEPTED || status == InvitationStatus.MAYBE) {
-            notificationService.notifyUsers(listOf(ownerId), userId)
+            notificationService.notifyUsers(listOf(ownerId), userId, result.eventId)
         }
         result
     }
@@ -150,7 +150,7 @@ class InvitationService(private val notificationService: NotificationService) {
                 this.status = InvitationStatus.PENDING
             }.toResponse()
         }
-        notificationService.notifyUsers(listOf(result.userId), ownerId)
+        notificationService.notifyUsers(listOf(result.userId), ownerId, eventId)
         result
     }
 
@@ -176,7 +176,7 @@ class InvitationService(private val notificationService: NotificationService) {
                 this.status = InvitationStatus.PENDING
             }.toResponse()
         }
-        notificationService.notifyUsers(listOf(result.userId), ownerId)
+        notificationService.notifyUsers(listOf(result.userId), ownerId, eventId)
         result
     }
 

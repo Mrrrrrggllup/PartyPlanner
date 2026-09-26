@@ -13,6 +13,11 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:networkSecurityConfig="@xml/network_security_config">
+        <!-- Default notification icon for FCM background messages -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
         <service
             android:name=".fcm.PartyPlannerMessagingService"
             android:exported="false">
@@ -41,6 +46,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="partyplanner" android:host="reset-password" />
+            </intent-filter>
+            <!-- Deep link : partyplanner://event/{eventId} — depuis notification push -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="partyplanner" android:host="event" />
             </intent-filter>
         </activity>
     </application>

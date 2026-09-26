@@ -36,8 +36,8 @@ class NotificationService(private val serviceAccountPath: String) {
     private val logger = LoggerFactory.getLogger(NotificationService::class.java)
     private val scope  = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // userId -> last seen epoch millis (in-memory, no DB cost per request)
-    private val activeUsers = ConcurrentHashMap<Int, Long>()
+    // userId -> eventId they are currently viewing (in-memory, cleared on server restart)
+    private val viewingEvent = ConcurrentHashMap<Int, Int>()
 
     init {
         if (serviceAccountPath.isNotBlank()) {
@@ -54,14 +54,18 @@ class NotificationService(private val serviceAccountPath: String) {
         }
     }
 
-    /** Mark a user as currently active (called on WS connect). No DB cost. */
-    fun touch(userId: Int) {
-        activeUsers[userId] = System.currentTimeMillis()
+    /** Signal that userId is currently viewing eventId. Called on event screen open / app foreground. */
+    fun enterEvent(userId: Int, eventId: Int) {
+        viewingEvent[userId] = eventId
     }
 
-    /** Reset notification flag and mark active. Called when app comes to foreground. */
+    /** Signal that userId left the event screen. Called on navigate away / app background. */
+    fun leaveEvent(userId: Int) {
+        viewingEvent.remove(userId)
+    }
+
+    /** Reset notification flag. Called when app comes to foreground. */
     suspend fun markActive(userId: Int) {
-        touch(userId)
         withContext(Dispatchers.IO) {
             transaction {
                 Users.update({ Users.id eq userId }) { it[Users.notificationPending] = false }
@@ -104,30 +108,37 @@ class NotificationService(private val serviceAccountPath: String) {
                 (listOf(ownerId) + guestIds).filter { it != actorUserId }.distinct()
             }
         }
-        notifyList(recipientIds)
+        notifyList(recipientIds, eventId)
     }
 
     /**
      * Notify a specific list of users (e.g. invitation to a new event).
      * Excludes actorUserId.
      */
-    suspend fun notifyUsers(recipientIds: List<Int>, actorUserId: Int) {
-        notifyList(recipientIds.filter { it != actorUserId }.distinct())
+    suspend fun notifyUsers(recipientIds: List<Int>, actorUserId: Int, eventId: Int? = null) {
+        notifyList(recipientIds.filter { it != actorUserId }.distinct(), eventId)
     }
 
     // ── internals ──────────────────────────────────────────────────────────────
 
-    private fun isOnline(userId: Int): Boolean {
-        val last = activeUsers[userId] ?: return false
-        return (System.currentTimeMillis() - last) < 90_000L
-    }
+    private fun isViewingEvent(userId: Int, eventId: Int): Boolean =
+        viewingEvent[userId] == eventId
 
-    private suspend fun notifyList(recipientIds: List<Int>) {
+    private suspend fun notifyList(recipientIds: List<Int>, eventId: Int? = null) {
         if (recipientIds.isEmpty()) return
 
-        // Atomically set notificationPending = true only if it was false.
-        // Returns 1 if this is the first notification for this user (send FCM), 0 if already pending (skip).
-        val usersToNotify = recipientIds.filter { !isOnline(it) }.mapNotNull { userId ->
+        val eventTitle = eventId?.let {
+            withContext(Dispatchers.IO) {
+                transaction { EventEntity.findById(it)?.title }
+            }
+        }
+
+        // Skip users currently viewing this specific event — they can see the update in real time.
+        // Still send to users who are in the app but on a different screen.
+        // Atomically set notificationPending = true only if it was false (prevents burst duplicates).
+        val usersToNotify = recipientIds
+            .filter { userId -> eventId == null || !isViewingEvent(userId, eventId) }
+            .mapNotNull { userId ->
             val updated = withContext(Dispatchers.IO) {
                 transaction {
                     Users.update({
@@ -149,22 +160,22 @@ class NotificationService(private val serviceAccountPath: String) {
         }
 
         if (tokens.isNotEmpty()) {
-            scope.launch { sendFcm(tokens) }
+            scope.launch { sendFcm(tokens, eventId, eventTitle) }
         }
     }
 
-    private fun sendFcm(tokens: List<String>) {
+    private fun sendFcm(tokens: List<String>, eventId: Int? = null, eventTitle: String? = null) {
         if (FirebaseApp.getApps().isEmpty()) return
         runCatching {
-            val msg = MulticastMessage.builder()
+            val msgBuilder = MulticastMessage.builder()
                 .setNotification(
                     Notification.builder()
-                        .setTitle("PartyPlanner")
-                        .setBody("Vous avez de nouvelles activités sur un événement")
+                        .setTitle(eventTitle ?: "PartyPlanner")
+                        .setBody("Vous avez de nouvelles activités")
                         .build()
                 )
-                .addAllTokens(tokens)
-                .build()
+            if (eventId != null) msgBuilder.putData("eventId", eventId.toString())
+            val msg = msgBuilder.addAllTokens(tokens).build()
             val result = FirebaseMessaging.getInstance().sendEachForMulticast(msg)
             logger.info("FCM sent: ${result.successCount} ok, ${result.failureCount} failed")
         }.onFailure { logger.error("FCM send error: $it") }
