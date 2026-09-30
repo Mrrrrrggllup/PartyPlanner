@@ -92,6 +92,13 @@ object ItemsBrought : IntIdTable("items_brought") {
 - `isFulfilled` passe à true via `/fulfill` : n'importe quel participant peut le faire
 - Les ItemsBrought d'un participant sont supprimés automatiquement s'il passe en DECLINED
 - Tri : `ORDER BY categoryId ASC NULLS LAST, id ASC`
-- Badge onglet = nombre d'ItemRequests non remplis (isFulfilled = false)
+- Badge onglet = pastille rouge si `newItemsCount > 0` (items non vus depuis la dernière ouverture)
 - Le label placeholder dans AddItemSheet est "chips, jus d'orange…" (sans alcool)
 - La colonne `price` existe en base mais n'est pas exposée (réservée pour le pot commun futur)
+
+## Export CSV (feature cachée)
+- Bouton ⬇ discret dans le header de l'onglet Courses, visible uniquement si `Users.can_export = true`
+- Génère un fichier `liste_courses.csv` au format `label,quantité` (une ligne par item, requests + brought)
+- Sauvegardé dans le dossier Téléchargements Android via `MediaStore.Downloads` (API 29+, sans permission)
+- Flag géré via `GET /users/me` → `canExport` dans `EventDetailState.Success`
+- Script d'activation : `scripts/seed_can_export.sql` (joué automatiquement par le pipeline CI/CD)

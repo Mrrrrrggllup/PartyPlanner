@@ -70,11 +70,13 @@ PartyPlanner/
 ### Users
 ```kotlin
 object Users : IntIdTable("users") {
-    val email        = varchar("email", 255).uniqueIndex()
-    val phone        = varchar("phone", 20).nullable()
-    val displayName  = varchar("display_name", 100)
-    val passwordHash = varchar("password_hash", 255)
-    val createdAt    = datetime("created_at")
+    val email               = varchar("email", 255).uniqueIndex()
+    val phone               = varchar("phone", 20).nullable()
+    val displayName         = varchar("display_name", 100)
+    val passwordHash        = varchar("password_hash", 255)
+    val createdAt           = datetime("created_at")
+    val notificationPending = bool("notification_pending").default(false)
+    val canExport           = bool("can_export").default(false)  // feature flag export CSV
 }
 ```
 

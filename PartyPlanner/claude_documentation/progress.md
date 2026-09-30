@@ -1,6 +1,6 @@
 # PartyPlanner — Suivi d'avancement
 
-_Dernière mise à jour : 2026-09-26 (v1.7)_
+_Dernière mise à jour : 2026-09-30 (v1.8)_
 
 ---
 
@@ -155,9 +155,11 @@ _Dernière mise à jour : 2026-09-26 (v1.7)_
 - `CreateEventScreen` : tap en dehors des champs ferme le clavier (`LocalFocusManager.clearFocus`)
 
 ### Tuiles de navigation ✅
-- `StatsRow` : 5 tuiles cliquables (👥 Confirmés, 🛒 Courses, € Notes, 💬 Chat, 🚗 Covoit)
+- `StatsRow` : 5 tuiles cliquables (👥 Invités, 🛒 Courses, € Notes, 💬 Chat, 🚗 Covoit)
 - Chaque tuile navigue directement vers son onglet (ripple natif via `OutlinedCard(onClick)`)
-- Chaque tuile affiche un total informatif (confirmés, courses, contributions, messages, offres covoit)
+- Tuile active : bordure primaire + label coloré. Pastille rouge si éléments non lus/en attente
+- **v1.8** : barre de navigation bas supprimée (doublon), `StatsRow` est le seul point de navigation
+- **v1.8** : plus de compteurs numériques dans les tuiles — pastille rouge uniquement si nouveauté
 
 ### Deep link invitations ✅
 - Lien partagé : `http://[serveur]/i/{token}` au lieu de `partyplanner://invite/{token}` (non cliquable)
@@ -280,6 +282,27 @@ _Dernière mise à jour : 2026-09-26 (v1.7)_
 **Tests** — 13 cas : accès (owner, invité, stranger), add (valid, montant 0, label vide, guest non-participant, adder stranger), delete (adder ok, non-adder refusé), tri desc, cascade removeGuest, cascade DECLINED
 
 - Bump version : `versionCode = 8` / `versionName = "1.7"`
+
+---
+
+## Features cachées / admin (2026-09-30) ✅
+
+### Export CSV liste de courses ✅
+
+**Backend**
+- Colonne `Users.can_export BOOLEAN DEFAULT false`
+- `GET /users/me` → `{ canExport: Boolean }` (authentifié)
+- Script SQL `scripts/seed_can_export.sql` : set `can_export = true` pour les 2 emails autorisés
+- Pipeline CI/CD : step migration automatique (pattern `.done` marker côté serveur)
+
+**Shared + UI**
+- `UserApi.getMe()` : appel au chargement de `DefaultEventDetailComponent`
+- `EventDetailState.Success.canExport` + `csvExportContent`
+- `EventDetailComponent.onExportCsv()` / `onCsvExportDone()`
+- Bouton ⬇ discret dans le header de l'onglet Courses, visible uniquement si `canExport = true`
+- Export `expect/actual` : `saveCsvToDevice()` → `MediaStore.Downloads` Android (API 29+), no-op iOS
+- Format CSV : `label,quantité` (une ligne par item, requests + brought)
+- `versionCode = 9` / `versionName = "1.8"` — déployé Firebase
 
 ---
 
