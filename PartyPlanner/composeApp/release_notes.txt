@@ -1,5 +1,8 @@
-v1.8 — Nouveautés
+v1.9 — Nouveautés
 
-- Navigation simplifiée : les tuiles en haut sont maintenant le seul point de navigation (barre du bas supprimée)
-- Les tuiles affichent une pastille rouge si des éléments sont non lus
-- Export CSV de la liste de courses (fonctionnalité réservée)
+- Confirmation visuelle après export CSV (snackbar "Liste sauvegardée dans Téléchargements")
+- Chat : le champ de saisie reste bien collé au clavier (plus de gap vide)
+- Chat : la barre d'onglets se masque à l'ouverture du clavier pour libérer de l'espace
+- Chat : le clavier se ferme automatiquement à l'envoi d'un message
+- Chat : la touche ↵ du clavier envoie directement le message
+- Onglets : texte tronqué proprement sur les petits écrans

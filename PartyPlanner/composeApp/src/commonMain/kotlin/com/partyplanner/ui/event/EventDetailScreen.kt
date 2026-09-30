@@ -19,11 +19,15 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import com.partyplanner.domain.model.CarpoolOffer
 import com.partyplanner.domain.model.ChatMessage
@@ -93,14 +97,17 @@ fun EventDetailScreen(component: EventDetailComponent) {
             }
             is EventDetailState.Success -> {
                 val imeVisible = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
+                val snackbarHostState = remember { SnackbarHostState() }
 
                 s.csvExportContent?.let { csv ->
                     LaunchedEffect(csv) {
                         saveCsvToDevice(csv, "liste_courses.csv")
                         component.onCsvExportDone()
+                        snackbarHostState.showSnackbar("Liste sauvegardée dans Téléchargements")
                     }
                 }
 
+                Box(modifier = Modifier.fillMaxSize()) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     DetailHero(
                         title        = s.event.title,
@@ -114,28 +121,30 @@ fun EventDetailScreen(component: EventDetailComponent) {
                             if (total > 0) "👥 $confirmed/$total présents" else null
                         },
                     )
-                    StatsRow(
-                        selected = selectedTab,
-                        onSelect = { tab ->
-                            if (tab == DetailTab.CHAT) component.onChatRead()
-                            else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
-                            if (tab == DetailTab.ITEMS) component.onItemsRead()
-                            if (tab == DetailTab.COVOIT) component.onCarpoolRead()
-                            selectedTab = tab
-                        },
-                        badgeCounts = mapOf(
-                            DetailTab.CHAT    to s.unreadChatCount,
-                            DetailTab.ITEMS   to s.items.newItemsCount,
-                            DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
-                            DetailTab.COVOIT  to s.carpoolOffers.newCarpoolCount,
-                            DetailTab.NOTES   to 0,
-                        ),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                    if (!imeVisible || selectedTab != DetailTab.CHAT) {
+                        StatsRow(
+                            selected = selectedTab,
+                            onSelect = { tab ->
+                                if (tab == DetailTab.CHAT) component.onChatRead()
+                                else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
+                                if (tab == DetailTab.ITEMS) component.onItemsRead()
+                                if (tab == DetailTab.COVOIT) component.onCarpoolRead()
+                                selectedTab = tab
+                            },
+                            badgeCounts = mapOf(
+                                DetailTab.CHAT    to s.unreadChatCount,
+                                DetailTab.ITEMS   to s.items.newItemsCount,
+                                DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
+                                DetailTab.COVOIT  to s.carpoolOffers.newCarpoolCount,
+                                DetailTab.NOTES   to 0,
+                            ),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
                     PullToRefreshBox(
                         isRefreshing = s.isRefreshing,
                         onRefresh    = component::onRefresh,
-                        modifier     = Modifier.weight(1f).navigationBarsPadding(),
+                        modifier     = Modifier.weight(1f).navigationBarsPadding().imePadding(),
                     ) {
                         if (selectedTab == DetailTab.CHAT) {
                             LaunchedEffect(Unit) { component.onChatRead() }
@@ -331,6 +340,11 @@ fun EventDetailScreen(component: EventDetailComponent) {
                     }
 
                 }
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+                )
+                } // Box
             }
         }
     }
@@ -632,12 +646,13 @@ private fun StatTile(
                 Text(text = icon, fontSize = 20.sp)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text  = label.uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                    color = if (isActive) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                    text     = label.uppercase(),
+                    style    = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    color    = if (isActive) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     maxLines  = 1,
+                    overflow  = TextOverflow.Ellipsis,
                 )
             }
             if (hasBadge) {
@@ -1706,13 +1721,14 @@ private fun ChatTabLayout(
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
+    val focusManager = LocalFocusManager.current
     var inputText by remember { mutableStateOf("") }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    Column(modifier = modifier.imePadding()) {
+    Column(modifier = modifier) {
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f),
@@ -1750,12 +1766,20 @@ private fun ChatTabLayout(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedTextField(
-                value         = inputText,
-                onValueChange = { inputText = it },
-                placeholder   = { Text(stringResource(Res.string.detail_chat_placeholder), style = MaterialTheme.typography.bodyMedium) },
-                modifier      = Modifier.weight(1f),
-                shape         = AppShapes.TextField,
-                singleLine    = true,
+                value          = inputText,
+                onValueChange  = { inputText = it },
+                placeholder    = { Text(stringResource(Res.string.detail_chat_placeholder), style = MaterialTheme.typography.bodyMedium) },
+                modifier       = Modifier.weight(1f),
+                shape          = AppShapes.TextField,
+                singleLine     = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = {
+                    if (inputText.isNotBlank()) {
+                        onSend(inputText.trim())
+                        inputText = ""
+                        focusManager.clearFocus()
+                    }
+                }),
             )
             Box(
                 modifier = Modifier
@@ -1768,6 +1792,7 @@ private fun ChatTabLayout(
                     .clickable(enabled = inputText.isNotBlank()) {
                         onSend(inputText.trim())
                         inputText = ""
+                        focusManager.clearFocus()
                     },
                 contentAlignment = Alignment.Center
             ) {
