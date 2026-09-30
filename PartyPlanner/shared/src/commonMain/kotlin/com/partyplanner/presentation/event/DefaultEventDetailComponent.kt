@@ -103,6 +103,7 @@ class DefaultEventDetailComponent(
     init {
         scope.launch {
             val currentUserId = sessionStorage.getSession()?.userId?.toInt() ?: 0
+            val canExport = userApi.getMe()
             getEventUseCase(eventId).fold(
                 onSuccess = { event ->
                     val isOwner = event.ownerId == currentUserId
@@ -111,6 +112,7 @@ class DefaultEventDetailComponent(
                         isOwner = isOwner,
                         currentUserId = currentUserId,
                         currentUserInvitationStatus = event.currentUserInvitationStatus,
+                        canExport = canExport,
                     )
                     loadInvitations()
                     loadItems()
@@ -415,6 +417,23 @@ class DefaultEventDetailComponent(
                 updateSuccess { copy(carpoolOffers = carpoolOffers.copy(offers = carpoolOffers.offers.map { if (it.id == offerId) updated else it })) }
             }
         }
+    }
+
+    override fun onExportCsv() {
+        val current = _state.value as? EventDetailState.Success ?: return
+        val lines = buildString {
+            current.items.requests.forEach { req ->
+                append("${req.label},${req.quantity}\n")
+            }
+            current.items.brought.forEach { brought ->
+                append("${brought.label},${brought.quantity}\n")
+            }
+        }
+        updateSuccess { copy(csvExportContent = lines) }
+    }
+
+    override fun onCsvExportDone() {
+        updateSuccess { copy(csvExportContent = null) }
     }
 
     private inline fun updateSuccess(block: EventDetailState.Success.() -> EventDetailState.Success) {

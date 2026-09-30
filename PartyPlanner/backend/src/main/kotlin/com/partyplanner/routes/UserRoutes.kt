@@ -1,6 +1,8 @@
 package com.partyplanner.routes
 
+import com.partyplanner.db.tables.UserEntity
 import com.partyplanner.dto.DeviceTokenRequest
+import com.partyplanner.dto.MeResponse
 import com.partyplanner.services.NotificationService
 import io.ktor.http.*
 import io.ktor.server.auth.*
@@ -8,9 +10,16 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Route.userRoutes(notificationService: NotificationService) {
     authenticate("auth-jwt") {
+        get("/users/me") {
+            val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asInt()
+            val canExport = transaction { UserEntity.findById(userId)?.canExport ?: false }
+            call.respond(HttpStatusCode.OK, MeResponse(canExport = canExport))
+        }
+
         // Register / refresh FCM token for this device
         post("/users/me/device-token") {
             val userId = call.principal<JWTPrincipal>()!!.payload.getClaim("userId").asInt()

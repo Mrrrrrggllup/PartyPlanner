@@ -33,6 +33,8 @@ sealed class EventDetailState {
         val deleteError: String? = null,
         val isRefreshing: Boolean = false,
         val unreadChatCount: Int = 0,
+        val canExport: Boolean = false,
+        val csvExportContent: String? = null,
     ) : EventDetailState()
     data class Error(val message: String) : EventDetailState()
 }

@@ -32,4 +32,6 @@ interface EventDetailComponent {
     fun onChatRead()
     fun onChatLeft()
     fun onEdit()
+    fun onExportCsv()
+    fun onCsvExportDone()
 }

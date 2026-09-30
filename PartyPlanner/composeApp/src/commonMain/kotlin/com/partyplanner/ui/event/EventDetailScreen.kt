@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -42,6 +41,7 @@ import com.partyplanner.presentation.event.EventDetailComponent
 import com.partyplanner.presentation.event.EventDetailState
 import com.partyplanner.ui.theme.AppShapes
 import com.partyplanner.ui.theme.appColors
+import com.partyplanner.util.saveCsvToDevice
 import kotlinx.coroutines.launch
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
@@ -93,6 +93,14 @@ fun EventDetailScreen(component: EventDetailComponent) {
             }
             is EventDetailState.Success -> {
                 val imeVisible = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
+
+                s.csvExportContent?.let { csv ->
+                    LaunchedEffect(csv) {
+                        saveCsvToDevice(csv, "liste_courses.csv")
+                        component.onCsvExportDone()
+                    }
+                }
+
                 Column(modifier = Modifier.fillMaxSize()) {
                     DetailHero(
                         title        = s.event.title,
@@ -107,18 +115,27 @@ fun EventDetailScreen(component: EventDetailComponent) {
                         },
                     )
                     StatsRow(
-                        confirmed     = s.invitations.count { it.status == InvitationStatus.ACCEPTED },
-                        totalItems    = s.items.requests.size + s.items.brought.size,
-                        contributions = s.contributions.size,
-                        totalChat     = s.chatMessages.size,
-                        covoits       = s.carpoolOffers.offers.size,
-                        onTabClick    = { selectedTab = it },
-                        modifier      = Modifier.padding(16.dp)
+                        selected = selectedTab,
+                        onSelect = { tab ->
+                            if (tab == DetailTab.CHAT) component.onChatRead()
+                            else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
+                            if (tab == DetailTab.ITEMS) component.onItemsRead()
+                            if (tab == DetailTab.COVOIT) component.onCarpoolRead()
+                            selectedTab = tab
+                        },
+                        badgeCounts = mapOf(
+                            DetailTab.CHAT    to s.unreadChatCount,
+                            DetailTab.ITEMS   to s.items.newItemsCount,
+                            DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
+                            DetailTab.COVOIT  to s.carpoolOffers.newCarpoolCount,
+                            DetailTab.NOTES   to 0,
+                        ),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                     PullToRefreshBox(
                         isRefreshing = s.isRefreshing,
                         onRefresh    = component::onRefresh,
-                        modifier     = Modifier.weight(1f),
+                        modifier     = Modifier.weight(1f).navigationBarsPadding(),
                     ) {
                         if (selectedTab == DetailTab.CHAT) {
                             LaunchedEffect(Unit) { component.onChatRead() }
@@ -258,6 +275,8 @@ fun EventDetailScreen(component: EventDetailComponent) {
                                             ItemsTabHeader(
                                                 onAddRequest = { showAddItemRequestSheet = true },
                                                 onAddBrought = { showAddItemBroughtSheet = true },
+                                                canExport    = s.canExport,
+                                                onExport     = component::onExportCsv,
                                                 modifier     = Modifier.padding(horizontal = 16.dp)
                                             )
                                         }
@@ -311,26 +330,6 @@ fun EventDetailScreen(component: EventDetailComponent) {
                         }
                     }
 
-                    if (!(selectedTab == DetailTab.CHAT && imeVisible)) {
-                        DetailTabBar(
-                            selected = selectedTab,
-                            onSelect = { tab ->
-                                if (tab == DetailTab.CHAT) component.onChatRead()
-                                else if (selectedTab == DetailTab.CHAT) component.onChatLeft()
-                                if (tab == DetailTab.ITEMS) component.onItemsRead()
-                                if (tab == DetailTab.COVOIT) component.onCarpoolRead()
-                                selectedTab = tab
-                            },
-                            modifier = Modifier.navigationBarsPadding(),
-                            badgeCounts = mapOf(
-                                DetailTab.CHAT    to s.unreadChatCount,
-                                DetailTab.ITEMS   to s.items.newItemsCount,
-                                DetailTab.INVITES to if (s.isOwner) s.invitations.count { it.status == InvitationStatus.PENDING } else 0,
-                                DetailTab.COVOIT  to s.carpoolOffers.newCarpoolCount,
-                                DetailTab.NOTES   to 0,
-                            ),
-                        )
-                    }
                 }
             }
         }
@@ -579,161 +578,82 @@ private fun DetailHero(
     }
 }
 
-// ── Stats row (raccourcis cliquables vers les onglets) ────────────────────────
+// ── Stats row (navigation principale vers les onglets) ────────────────────────
 
 @Composable
 private fun StatsRow(
-    confirmed: Int,
-    totalItems: Int,
-    contributions: Int,
-    totalChat: Int,
-    covoits: Int,
-    onTabClick: (DetailTab) -> Unit,
-    modifier: Modifier = Modifier
+    selected: DetailTab,
+    onSelect: (DetailTab) -> Unit,
+    badgeCounts: Map<DetailTab, Int> = emptyMap(),
+    modifier: Modifier = Modifier,
 ) {
-    val gradA = MaterialTheme.appColors.gradA
-    val gradB = MaterialTheme.appColors.gradB
-    val gradC = MaterialTheme.appColors.gradC
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        StatTile(
-            icon = "👥", value = "$confirmed",
-            label = stringResource(Res.string.detail_stat_confirmed),
-            gradient = gradA, onClick = { onTabClick(DetailTab.INVITES) },
-            modifier = Modifier.weight(1f)
-        )
-        StatTile(
-            icon = "🛒", value = "$totalItems",
-            label = stringResource(Res.string.detail_tab_items),
-            gradient = gradC, onClick = { onTabClick(DetailTab.ITEMS) },
-            modifier = Modifier.weight(1f)
-        )
-        StatTile(
-            icon = "€", value = "$contributions",
-            label = stringResource(Res.string.detail_tab_notes),
-            gradient = gradB, onClick = { onTabClick(DetailTab.NOTES) },
-            modifier = Modifier.weight(1f)
-        )
-        StatTile(
-            icon = "💬", value = "$totalChat",
-            label = stringResource(Res.string.detail_tab_chat),
-            gradient = gradA, onClick = { onTabClick(DetailTab.CHAT) },
-            modifier = Modifier.weight(1f)
-        )
-        StatTile(
-            icon = "🚗", value = "$covoits",
-            label = stringResource(Res.string.detail_tab_carpool),
-            gradient = gradC, onClick = { onTabClick(DetailTab.COVOIT) },
-            modifier = Modifier.weight(1f)
-        )
+        DetailTab.entries.forEach { tab ->
+            StatTile(
+                icon     = tab.icon,
+                label    = tab.localizedLabel,
+                isActive = tab == selected,
+                hasBadge = (badgeCounts[tab] ?: 0) > 0,
+                onClick  = { onSelect(tab) },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
 @Composable
 private fun StatTile(
     icon: String,
-    value: String,
     label: String,
-    gradient: Brush,
+    isActive: Boolean,
+    hasBadge: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     OutlinedCard(
         onClick = onClick,
         modifier = modifier,
         shape = AppShapes.Card,
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline)
+        border = androidx.compose.foundation.BorderStroke(
+            if (isActive) 2.dp else 1.5.dp,
+            if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+        )
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = icon, fontSize = 18.sp)
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge.copy(brush = gradient),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = label.uppercase(),
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-        }
-    }
-}
-
-// ── Bottom tab bar ────────────────────────────────────────────────────────────
-
-@Composable
-private fun DetailTabBar(
-    selected: DetailTab,
-    onSelect: (DetailTab) -> Unit,
-    modifier: Modifier = Modifier,
-    badgeCounts: Map<DetailTab, Int> = emptyMap(),
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp
-    ) {
-        Column {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-            Row(
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceAround
+                    .padding(vertical = 12.dp, horizontal = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                DetailTab.entries.forEach { tab ->
-                    val isActive  = tab == selected
-                    val badgeCount = badgeCounts[tab] ?: 0
-                    Column(
-                        modifier = Modifier
-                            .clickable { onSelect(tab) }
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        BadgedBox(
-                            badge = {
-                                if (badgeCount > 0) Badge {
-                                    Text(if (badgeCount > 9) "9+" else badgeCount.toString())
-                                }
-                            }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(AppShapes.ActionIcon)
-                                    .then(
-                                        if (isActive) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
-                                        else Modifier
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(tab.icon, fontSize = 17.sp)
-                            }
-                        }
-                        Text(
-                            text = tab.localizedLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isActive) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                Text(text = icon, fontSize = 20.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text  = label.uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    color = if (isActive) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines  = 1,
+                )
+            }
+            if (hasBadge) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 6.dp, end = 6.dp)
+                        .size(8.dp)
+                        .clip(AppShapes.Pill)
+                        .background(MaterialTheme.colorScheme.error)
+                        .align(Alignment.TopEnd)
+                )
             }
         }
     }
 }
+
 
 // ── RSVP banner (non-owner) ───────────────────────────────────────────────────
 
@@ -1010,6 +930,8 @@ private fun InviteButton(token: String, modifier: Modifier = Modifier) {
 private fun ItemsTabHeader(
     onAddRequest: () -> Unit,
     onAddBrought: () -> Unit,
+    canExport: Boolean = false,
+    onExport: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -1041,6 +963,18 @@ private fun ItemsTabHeader(
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge
             )
+        }
+        if (canExport) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(AppShapes.ActionIcon)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable(onClick = onExport),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("⬇", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

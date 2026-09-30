@@ -4,3 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class DeviceTokenRequest(val token: String, val platform: String = "android")
+
+@Serializable
+data class MeResponse(val canExport: Boolean)

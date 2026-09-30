@@ -13,6 +13,7 @@ object Users : IntIdTable("users") {
     val passwordHash = varchar("password_hash", 255)
     val createdAt = datetime("created_at")
     val notificationPending = bool("notification_pending").default(false)
+    val canExport = bool("can_export").default(false)
 }
 
 class UserEntity(id: EntityID<Int>) : IntEntity(id) {
@@ -24,4 +25,5 @@ class UserEntity(id: EntityID<Int>) : IntEntity(id) {
     var passwordHash by Users.passwordHash
     var createdAt by Users.createdAt
     var notificationPending by Users.notificationPending
+    var canExport by Users.canExport
 }

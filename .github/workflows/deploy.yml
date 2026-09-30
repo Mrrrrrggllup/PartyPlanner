@@ -39,13 +39,13 @@ jobs:
           push: true
           tags: ghcr.io/${{ env.REPO_LOWER }}/partyplanner-backend:latest
 
-      - name: Copy docker-compose.prod.yml to VPS
+      - name: Copy files to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          source: "PartyPlanner/docker-compose.prod.yml"
+          source: "PartyPlanner/docker-compose.prod.yml,PartyPlanner/scripts"
           target: "/opt/partyplanner"
           strip_components: 1
 
@@ -66,3 +66,15 @@ jobs:
             docker compose -f docker-compose.prod.yml pull backend
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f
+            # Run pending SQL migrations (once each — tracked by .done markers)
+            mkdir -p /opt/partyplanner/scripts/done
+            for sql in /opt/partyplanner/scripts/*.sql; do
+              [ -f "$sql" ] || continue
+              marker="/opt/partyplanner/scripts/done/$(basename "$sql").done"
+              if [ ! -f "$marker" ]; then
+                echo "Running migration: $(basename $sql)"
+                docker compose -f docker-compose.prod.yml exec -T db \
+                  psql -U ${{ secrets.DB_USER }} -d partyplanner < "$sql" \
+                  && touch "$marker"
+              fi
+            done

@@ -1,7 +1,9 @@
 package com.partyplanner.data.remote
 
 import com.partyplanner.data.local.SessionStorage
+import com.partyplanner.data.remote.dto.MeDto
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 
@@ -11,6 +13,15 @@ class UserApi(
     private val sessionStorage: SessionStorage,
 ) {
     private fun token(): String? = sessionStorage.getSession()?.token
+
+    suspend fun getMe(): Boolean {
+        val authToken = token() ?: return false
+        return runCatching {
+            httpClient.get("$baseUrl/users/me") {
+                header(HttpHeaders.Authorization, "Bearer $authToken")
+            }.body<MeDto>().canExport
+        }.getOrDefault(false)
+    }
 
     suspend fun registerDeviceToken(fcmToken: String) {
         val authToken = token() ?: return
