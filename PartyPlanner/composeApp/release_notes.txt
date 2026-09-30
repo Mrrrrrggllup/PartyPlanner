@@ -1,5 +1,5 @@
-v1.6 — Nouveautés
+v1.8 — Nouveautés
 
-- Nouvelle icône de l'application
-- Fix : positionnement du chat (le clavier recouvrait la zone de saisie)
-- L'app demande maintenant l'autorisation pour envoyer des notifications
+- Navigation simplifiée : les tuiles en haut sont maintenant le seul point de navigation (barre du bas supprimée)
+- Les tuiles affichent une pastille rouge si des éléments sont non lus
+- Export CSV de la liste de courses (fonctionnalité réservée)
