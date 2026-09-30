@@ -1,8 +1,5 @@
-v1.9 — Nouveautés
+v1.9.1 — Correctifs
 
-- Confirmation visuelle après export CSV (snackbar "Liste sauvegardée dans Téléchargements")
-- Chat : le champ de saisie reste bien collé au clavier (plus de gap vide)
-- Chat : la barre d'onglets se masque à l'ouverture du clavier pour libérer de l'espace
-- Chat : le clavier se ferme automatiquement à l'envoi d'un message
-- Chat : la touche ↵ du clavier envoie directement le message
-- Onglets : texte tronqué proprement sur les petits écrans
+- Chat : fix du gap entre l'input et le clavier (imePadding déplacé au bon niveau)
+- Chat : la barre d'onglets se masque bien à l'ouverture du clavier
+- CSV : la snackbar de confirmation s'affiche maintenant correctement après l'export

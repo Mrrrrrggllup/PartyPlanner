@@ -102,13 +102,13 @@ fun EventDetailScreen(component: EventDetailComponent) {
                 s.csvExportContent?.let { csv ->
                     LaunchedEffect(csv) {
                         saveCsvToDevice(csv, "liste_courses.csv")
-                        component.onCsvExportDone()
                         snackbarHostState.showSnackbar("Liste sauvegardée dans Téléchargements")
+                        component.onCsvExportDone()
                     }
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                Column(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
                     DetailHero(
                         title        = s.event.title,
                         subtitle     = buildSubtitle(s.event),
@@ -141,21 +141,21 @@ fun EventDetailScreen(component: EventDetailComponent) {
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
+                    if (selectedTab == DetailTab.CHAT) {
+                        LaunchedEffect(Unit) { component.onChatRead() }
+                        ChatTabLayout(
+                            messages      = s.chatMessages,
+                            currentUserId = s.currentUserId,
+                            onSend        = component::onSendMessage,
+                            modifier      = Modifier.weight(1f),
+                        )
+                    } else {
                     PullToRefreshBox(
                         isRefreshing = s.isRefreshing,
                         onRefresh    = component::onRefresh,
-                        modifier     = Modifier.weight(1f).navigationBarsPadding().imePadding(),
+                        modifier     = Modifier.weight(1f),
                     ) {
-                        if (selectedTab == DetailTab.CHAT) {
-                            LaunchedEffect(Unit) { component.onChatRead() }
-                            ChatTabLayout(
-                                messages      = s.chatMessages,
-                                currentUserId = s.currentUserId,
-                                onSend        = component::onSendMessage,
-                                modifier      = Modifier.fillMaxSize(),
-                            )
-                        } else {
-                            LazyColumn(
+                        LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = 16.dp)
                             ) {
@@ -342,7 +342,7 @@ fun EventDetailScreen(component: EventDetailComponent) {
                 }
                 SnackbarHost(
                     hostState = snackbarHostState,
-                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding()
                 )
                 } // Box
             }
