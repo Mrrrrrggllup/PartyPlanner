@@ -92,3 +92,15 @@ Ne jamais démarrer une session de développement sans avoir lu ces documents. I
 - `keystore.properties` ne doit pas être versionné
 - `serviceAccountKey.json` (compte de service Firebase) ne doit pas être commité — monté en volume sur le serveur
 - Toujours incrémenter `versionCode` ET `versionName` avant un déploiement Firebase App Distribution
+
+---
+
+## Règle n°6 : Déploiement Firebase — toujours utiliser `--rerun-tasks`
+
+La commande Firebase App Distribution **doit toujours inclure `--rerun-tasks`** pour forcer un build propre. Sans ce flag, le cache Gradle peut livrer un APK obsolète qui ne reflète pas les dernières modifications.
+
+```bash
+./gradlew :composeApp:assembleRelease appDistributionUploadRelease --rerun-tasks
+```
+
+Voir `claude_documentation/deploy.md` pour la procédure complète.
